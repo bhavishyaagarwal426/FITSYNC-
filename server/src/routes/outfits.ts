@@ -75,13 +75,17 @@ async function executeOutfitGeneration(
   {
     occasion = 'casual',
     style = 'casual',
-    weather = 'mild',
+    weather = 'moderate',
+    season = '',
+    outerwearOption = 'auto',
     colorPreference,
     excludeItems = [],
   }: {
     occasion?: string;
     style?: string;
     weather?: string;
+    season?: string;
+    outerwearOption?: 'auto' | 'yes' | 'no';
     colorPreference?: string;
     excludeItems?: string[];
   }
@@ -97,7 +101,7 @@ async function executeOutfitGeneration(
   if (!items || items.length === 0) {
     res.status(400).json({
       error: 'Your wardrobe is empty. Please upload some clothes first!',
-      missingCategories: ['tops', 'bottoms', 'footwear'],
+      missingCategories: ['tops', 'bottoms', 'footwear', 'accessories'],
     });
     return;
   }
@@ -132,6 +136,8 @@ async function executeOutfitGeneration(
     occasion,
     style,
     weather,
+    season,
+    outerwearOption,
     colorPreference,
     excludeItems,
     rejectedItemSets,
@@ -145,6 +151,7 @@ async function executeOutfitGeneration(
     if (!categoriesOwned.has('tops')) missing.push('tops');
     if (!categoriesOwned.has('bottoms') && !categoriesOwned.has('dresses')) missing.push('bottoms');
     if (!categoriesOwned.has('footwear')) missing.push('footwear');
+    if (!categoriesOwned.has('accessories')) missing.push('accessories');
 
     res.status(422).json({
       error: 'Could not assemble a complete outfit with your current wardrobe items and filters.',
@@ -157,16 +164,16 @@ async function executeOutfitGeneration(
   const selectedCandidate = candidates[0];
   const outfitId = generateId();
 
-  const aiProvider = getAIProvider();
   let explanation = '';
   const itemNames = selectedCandidate.items.map((i: any) => i.custom_name || i.subcategory || i.category).join(', ');
-  const stylingNote = selectedCandidate.stylingTechnique || 'Curated Styling';
-  const reasonText = selectedCandidate.reasons.length > 0 ? selectedCandidate.reasons.join('. ') : 'Cohesive color coordination and tailored silhouette.';
+  const stylingNote = selectedCandidate.stylingTechnique || 'Curated Ensemble';
+  const reasonText = selectedCandidate.reasons.length > 0 ? selectedCandidate.reasons.join('. ') : 'Cohesive color coordination and balanced silhouette.';
+  const outerwearNote = selectedCandidate.outerwearPrediction?.reason ? ` [Layering: ${selectedCandidate.outerwearPrediction.reason}]` : '';
 
   if (pinterestUsername) {
-    explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & aligned with your @${pinterestUsername} moodboard: Pairing ${itemNames}. ${reasonText}`;
+    explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & aligned with your @${pinterestUsername} moodboard: Complete head-to-toe ensemble combining ${itemNames}.${outerwearNote} ${reasonText}`;
   } else {
-    explanation = `[${stylingNote}] ${reasonText} Combining ${itemNames} strictly from clothes in your digital wardrobe for an effortless ${occasion} look.`;
+    explanation = `[${stylingNote}] Head-to-toe ensemble combining ${itemNames} strictly from clothes in your digital wardrobe.${outerwearNote} ${reasonText}`;
   }
 
   const insertOutfit = db.prepare(`
@@ -200,6 +207,8 @@ router.post(
     body('occasion').optional().isString(),
     body('style').optional().isString(),
     body('weather').optional().isString(),
+    body('season').optional().isString(),
+    body('outerwearOption').optional().isString(),
     body('colorPreference').optional().isString(),
     body('excludeItems').optional().isArray(),
   ]),

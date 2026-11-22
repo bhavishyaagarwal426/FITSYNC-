@@ -169,6 +169,8 @@ export interface GenerateOutfitRequest {
   occasion: string;
   style: string;
   weather?: string;
+  season?: string;
+  outerwearOption?: 'auto' | 'yes' | 'no';
   colorPreference?: string;
   excludeItems?: string[];
   formality?: string;
