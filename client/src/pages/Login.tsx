@@ -23,7 +23,13 @@ export default function Login() {
       await login({ email, password });
       navigate(from, { replace: true });
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Invalid email or password');
+      const msg =
+        err?.details?.[0]?.message ||
+        err?.error ||
+        err?.message ||
+        err?.response?.data?.error ||
+        'Invalid email or password';
+      setError(msg);
     }
   };
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Sparkles, Check } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles, Check, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import AuthLayout from '@/components/layout/AuthLayout';
@@ -23,6 +23,17 @@ export default function Register() {
     e.preventDefault();
     setError(null);
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = displayName.trim();
+
+    if (!cleanEmail) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
     if (!termsAccepted) {
       setError('Please accept the Terms of Service and Privacy Policy to continue.');
       return;
@@ -31,16 +42,12 @@ export default function Register() {
       setError('Please confirm that you meet the age requirement (16+) to use this service.');
       return;
     }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
 
     try {
       await register({
-        email,
+        email: cleanEmail,
         password,
-        displayName,
+        displayName: cleanName || 'Fashion Enthusiast',
         gender,
         ageConfirmed: true,
         onboardingCompleted: true,
@@ -48,9 +55,17 @@ export default function Register() {
       toast.success('Account created! Welcome to FITSYNC AI Stylist ✨', { icon: '✨' });
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Registration failed. Please check your details and try again.');
+      const msg =
+        err?.details?.[0]?.message ||
+        err?.error ||
+        err?.message ||
+        err?.response?.data?.error ||
+        'Registration failed. Please check your details and try again.';
+      setError(msg);
     }
   };
+
+  const isExistingAccount = error && error.toLowerCase().includes('already exists');
 
   return (
     <AuthLayout
@@ -59,8 +74,21 @@ export default function Register() {
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200">
-            {error}
+          <div className="p-3.5 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+            <div className="flex-1">
+              <span>{error}</span>
+              {isExistingAccount && (
+                <div className="mt-1.5 pt-1.5 border-t border-red-200/80">
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center gap-1 font-bold text-burgundy-900 hover:underline"
+                  >
+                    <span>Click here to sign in with this email →</span>
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -85,10 +113,10 @@ export default function Register() {
         />
 
         <Input
-          label="Password (min 8 characters)"
+          label="Password (min 6 characters)"
           type="password"
           required
-          minLength={8}
+          minLength={6}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           leftIcon={<Lock className="w-4 h-4" />}

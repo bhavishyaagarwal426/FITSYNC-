@@ -11,16 +11,16 @@ import { validate } from '../middleware/validate.js';
 const router = Router();
 
 const registerValidation = [
-  body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
-  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
-  body('displayName').trim().isLength({ min: 2, max: 50 }).withMessage('Display name must be 2-50 characters'),
+  body('email').trim().toLowerCase().isEmail().withMessage('Please enter a valid email address'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+  body('displayName').trim().isLength({ min: 1, max: 50 }).withMessage('Display name must be between 1 and 50 characters'),
   body('ageConfirmed').optional().isBoolean(),
   body('gender').optional().isIn(['men', 'women', 'unisex', 'all']),
   body('onboardingCompleted').optional().isBoolean(),
 ];
 
 const loginValidation = [
-  body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
+  body('email').trim().toLowerCase().isEmail().withMessage('Valid email is required'),
   body('password').notEmpty().withMessage('Password is required'),
 ];
 
