@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+client/dist/
+server/dist/
+dist/
+build/
+
+# Local Environment & Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# SQLite Database & Storage
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-wal
+server/data/*.db-shm
+*.sqlite
+*.sqlite3
+
+# User uploads (keep sample placeholder & inspiration visuals)
+server/uploads/*
+!server/uploads/placeholder-*.png
+!server/uploads/insp-*.png
+!server/uploads/.gitkeep
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo

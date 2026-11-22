@@ -1,0 +1,25 @@
+{
+  "name": "fitsync",
+  "version": "1.0.0",
+  "description": "FITSYNC — AI Personal Wardrobe & Stylist Platform",
+  "scripts": {
+    "start": "cd server && node dist/index.js",
+    "dev": "npm --prefix server run dev",
+    "server:dev": "npm --prefix server run dev",
+    "server:build": "npm --prefix server run build",
+    "server:check": "npm --prefix server run build --dry-run 2>/dev/null || (cd server && npx tsc --noEmit)",
+    "client:dev": "npm --prefix client run dev",
+    "client:build": "npm --prefix client run build",
+    "client:check": "cd client && npx tsc -b",
+    "build": "cd server && npm run build && cd ../client && npm run build",
+    "typecheck": "cd server && npx tsc --noEmit && cd ../client && npx tsc -b"
+  },
+  "keywords": [
+    "fitsync",
+    "ai-stylist",
+    "digital-wardrobe",
+    "fashion-tech"
+  ],
+  "author": "FITSYNC Team",
+  "license": "MIT"
+}
