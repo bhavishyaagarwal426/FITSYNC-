@@ -25,9 +25,9 @@ export default function Button({
 
   const variants = {
     primary: 'bg-burgundy-800 hover:bg-burgundy-900 text-white shadow-sm hover:shadow',
-    secondary: 'bg-cream-200 hover:bg-cream-300 text-charcoal-900',
-    outline: 'border border-cream-400 hover:border-burgundy-800 text-charcoal-800 hover:text-burgundy-800 bg-transparent',
-    ghost: 'hover:bg-cream-200 text-charcoal-700 hover:text-charcoal-900',
+    secondary: 'bg-cream-200 dark:bg-[#25252D] hover:bg-cream-300 dark:hover:bg-[#2F2F38] text-charcoal-900 dark:text-cream-100',
+    outline: 'border border-cream-400 dark:border-[#353540] hover:border-burgundy-800 dark:hover:border-burgundy-400 text-charcoal-800 dark:text-cream-200 hover:text-burgundy-800 dark:hover:text-burgundy-300 bg-transparent',
+    ghost: 'hover:bg-cream-200 dark:hover:bg-[#25252D] text-charcoal-700 dark:text-charcoal-300 hover:text-charcoal-900 dark:hover:text-cream-100',
     danger: 'bg-red-600 hover:bg-red-700 text-white',
   };
 

@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -38,6 +39,17 @@ export default {
           900: '#3D3D3D',
           950: '#242424',
         },
+        dark: {
+          950: '#0F0F11',
+          900: '#141417',
+          850: '#1A1A1E',
+          800: '#222228',
+          700: '#2E2E36',
+          600: '#3E3E48',
+          muted: '#8E8E98',
+          text: '#F5EFEB',
+          accent: '#A33B58',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
@@ -70,6 +82,7 @@ export default {
         'card': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
         'card-hover': '0 10px 15px -3px rgba(0, 0, 0, 0.06), 0 4px 6px -4px rgba(0, 0, 0, 0.04)',
         'modal': '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+        'dark-card': '0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2)',
       },
     },
   },

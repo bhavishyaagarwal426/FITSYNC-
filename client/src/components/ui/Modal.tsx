@@ -41,20 +41,20 @@ export default function Modal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-950/60 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-charcoal-950/70 backdrop-blur-sm animate-fadeIn">
       <div
         className={clsx(
-          'w-full bg-white rounded-2xl shadow-modal border border-cream-300 overflow-hidden animate-slideUp',
+          'w-full bg-white dark:bg-[#1A1A1E] rounded-2xl shadow-modal border border-cream-300 dark:border-[#2A2A33] overflow-hidden animate-slideUp text-charcoal-900 dark:text-cream-100',
           maxWidths[maxWidth]
         )}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-cream-200">
-          <h3 className="text-base font-semibold text-charcoal-900">{title}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-cream-200 dark:border-[#272730]">
+          <h3 className="text-base font-semibold text-charcoal-900 dark:text-cream-100">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1.5 text-charcoal-400 hover:text-charcoal-700 hover:bg-cream-100 rounded-lg transition-colors"
+            className="p-1.5 text-charcoal-400 hover:text-charcoal-700 dark:hover:text-charcoal-200 hover:bg-cream-100 dark:hover:bg-[#25252D] rounded-lg transition-colors"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />

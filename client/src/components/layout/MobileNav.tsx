@@ -13,7 +13,7 @@ export default function MobileNav() {
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-cream-300 px-3 py-1.5 flex items-center justify-around shadow-lg">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#16161A]/95 backdrop-blur-md border-t border-cream-300 dark:border-[#272730] px-3 py-1.5 flex items-center justify-around shadow-lg transition-colors">
       {links.map((link) => {
         const Icon = link.icon;
 
@@ -29,7 +29,7 @@ export default function MobileNav() {
                   <div
                     className={clsx(
                       'w-12 h-12 rounded-full flex items-center justify-center text-white shadow-md transition-transform active:scale-95',
-                      isActive ? 'bg-burgundy-900 ring-4 ring-cream-100' : 'bg-burgundy-800'
+                      isActive ? 'bg-burgundy-900 ring-4 ring-cream-100 dark:ring-[#121214]' : 'bg-burgundy-800'
                     )}
                   >
                     <Icon className="w-5 h-5 text-white animate-pulse" />
@@ -37,7 +37,7 @@ export default function MobileNav() {
                   <span
                     className={clsx(
                       'text-[10px] mt-1 font-semibold tracking-tight',
-                      isActive ? 'text-burgundy-800' : 'text-charcoal-600'
+                      isActive ? 'text-burgundy-800 dark:text-burgundy-400' : 'text-charcoal-600 dark:text-charcoal-300'
                     )}
                   >
                     {link.name}
@@ -55,16 +55,14 @@ export default function MobileNav() {
             className={({ isActive }) =>
               clsx(
                 'flex flex-col items-center py-1 px-2.5 rounded-lg text-[10px] font-medium transition-colors',
-                isActive ? 'text-burgundy-800 font-semibold' : 'text-charcoal-500 hover:text-charcoal-900'
+                isActive
+                  ? 'text-burgundy-800 dark:text-burgundy-400 font-semibold'
+                  : 'text-charcoal-500 dark:text-charcoal-400 hover:text-charcoal-900 dark:hover:text-cream-100'
               )
             }
           >
-            {({ isActive }) => (
-              <>
-                <Icon className={clsx('w-5 h-5 mb-0.5', isActive ? 'text-burgundy-800' : 'text-charcoal-400')} />
-                <span>{link.name}</span>
-              </>
-            )}
+            <Icon className="w-5 h-5 mb-0.5" />
+            <span>{link.name}</span>
           </NavLink>
         );
       })}
