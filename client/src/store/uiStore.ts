@@ -1,11 +1,38 @@
 import { create } from 'zustand';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
+export type GlobalCurrency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'CAD' | 'AUD';
+
+export interface CurrencyConfig {
+  code: GlobalCurrency;
+  symbol: string;
+  label: string;
+  rate: number;
+  flag: string;
+}
+
+export const CURRENCIES: Record<GlobalCurrency, CurrencyConfig> = {
+  USD: { code: 'USD', symbol: '$', label: 'USD ($)', rate: 1.0, flag: '🇺🇸' },
+  EUR: { code: 'EUR', symbol: '€', label: 'EUR (€)', rate: 0.92, flag: '🇪🇺' },
+  GBP: { code: 'GBP', symbol: '£', label: 'GBP (£)', rate: 0.79, flag: '🇬🇧' },
+  INR: { code: 'INR', symbol: '₹', label: 'INR (₹)', rate: 86.5, flag: '🇮🇳' },
+  JPY: { code: 'JPY', symbol: '¥', label: 'JPY (¥)', rate: 154.0, flag: '🇯🇵' },
+  CAD: { code: 'CAD', symbol: 'C$', label: 'CAD (C$)', rate: 1.40, flag: '🇨🇦' },
+  AUD: { code: 'AUD', symbol: 'A$', label: 'AUD (A$)', rate: 1.55, flag: '🇦🇺' },
+};
+
+export const formatPriceInCurrency = (amountInUSD: number, targetCurrency: GlobalCurrency = 'USD'): string => {
+  const curr = CURRENCIES[targetCurrency] || CURRENCIES.USD;
+  const converted = Math.round(amountInUSD * curr.rate);
+  return `${curr.symbol}${converted.toLocaleString()}`;
+};
 
 interface UIState {
   sidebarOpen: boolean;
   mobileMenuOpen: boolean;
   theme: ThemeMode;
+  currency: GlobalCurrency;
+  setCurrency: (currency: GlobalCurrency) => void;
   toggleTheme: () => void;
   setTheme: (theme: ThemeMode) => void;
   cookieConsent: {
@@ -83,11 +110,28 @@ const initialConsent = (() => {
   };
 })();
 
+const initialCurrency = ((): GlobalCurrency => {
+  try {
+    const stored = localStorage.getItem('fitsync_currency');
+    if (stored && stored in CURRENCIES) return stored as GlobalCurrency;
+  } catch {}
+  return 'USD';
+})();
+
 export const useUIStore = create<UIState>((set) => ({
   sidebarOpen: true,
   mobileMenuOpen: false,
   theme: initialTheme,
+  currency: initialCurrency,
   cookieConsent: initialConsent,
+
+  setCurrency: (currency: GlobalCurrency) =>
+    set(() => {
+      try {
+        localStorage.setItem('fitsync_currency', currency);
+      } catch {}
+      return { currency };
+    }),
 
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),

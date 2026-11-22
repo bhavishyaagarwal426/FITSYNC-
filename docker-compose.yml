@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  fitsync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitsync-app
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=fitsync-production-secret-key-change-me
+      - AI_PROVIDER=demo
+    volumes:
+      - fitsync_db:/app/server/data
+      - fitsync_uploads:/app/server/uploads
+
+volumes:
+  fitsync_db:
+  fitsync_uploads:

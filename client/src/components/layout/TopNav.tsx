@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Bell, Menu, X, Sparkles, User, Settings, LogOut, ShieldAlert, Sun, Moon } from 'lucide-react';
+import { Search, Bell, Menu, X, Sparkles, User, Settings, LogOut, ShieldAlert, Sun, Moon, Globe } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { useUIStore } from '@/store/uiStore';
+import { useUIStore, CURRENCIES, GlobalCurrency } from '@/store/uiStore';
 import Avatar from '@/components/ui/Avatar';
 
 export default function TopNav() {
   const { user, logout } = useAuthStore();
-  const { mobileMenuOpen, setMobileMenuOpen, theme, toggleTheme } = useUIStore();
+  const { mobileMenuOpen, setMobileMenuOpen, theme, toggleTheme, currency, setCurrency } = useUIStore();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [currencyDropdownOpen, setCurrencyDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
@@ -59,6 +60,52 @@ export default function TopNav() {
           <Sparkles className="w-3.5 h-3.5" />
           <span>Style Me</span>
         </button>
+
+        {/* Global Currency & Region Switcher */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setCurrencyDropdownOpen(!currencyDropdownOpen)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-cream-300 dark:border-[#2D2D38] hover:border-burgundy-800 bg-white/60 dark:bg-[#1E1E24]/60 text-xs font-semibold text-charcoal-800 dark:text-cream-100 transition-colors shadow-2xs"
+            title="Select Global Currency & Region"
+          >
+            <Globe className="w-3.5 h-3.5 text-burgundy-800 dark:text-burgundy-400" />
+            <span className="hidden sm:inline">{CURRENCIES[currency].flag}</span>
+            <span>{CURRENCIES[currency].code}</span>
+          </button>
+
+          {currencyDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#1E1E24] rounded-2xl shadow-xl border border-cream-300 dark:border-[#2D2D38] py-2 z-50 animate-fadeIn">
+              <div className="px-3 py-1.5 border-b border-cream-200 dark:border-[#272730] text-[10px] font-bold uppercase tracking-wider text-charcoal-400 dark:text-charcoal-500">
+                Global Currency
+              </div>
+              {(Object.keys(CURRENCIES) as GlobalCurrency[]).map((c) => {
+                const item = CURRENCIES[c];
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setCurrency(c);
+                      setCurrencyDropdownOpen(false);
+                    }}
+                    className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between transition-colors ${
+                      currency === c
+                        ? 'bg-burgundy-50 dark:bg-burgundy-950/40 text-burgundy-800 dark:text-burgundy-300 font-bold'
+                        : 'text-charcoal-700 dark:text-charcoal-300 hover:bg-cream-100 dark:hover:bg-[#25252D]'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{item.flag}</span>
+                      <span>{item.label}</span>
+                    </span>
+                    {currency === c && <span className="text-burgundy-800 dark:text-burgundy-400 font-black">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Dark / Light Theme Toggle */}
         <button

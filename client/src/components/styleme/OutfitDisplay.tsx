@@ -18,6 +18,7 @@ import { clsx } from 'clsx';
 import toast from 'react-hot-toast';
 import type { Outfit } from '@/types';
 import { useBucketListStore } from '@/store/bucketListStore';
+import { useUIStore, formatPriceInCurrency, CURRENCIES } from '@/store/uiStore';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
@@ -77,6 +78,7 @@ export default function OutfitDisplay({
   const isLoved = outfit.feedback?.rating === 'loved';
   const isRejected = outfit.feedback?.rating === 'rejected';
 
+  const { currency } = useUIStore();
   const { addItem: addBucketItem } = useBucketListStore();
   const [savedItemIds, setSavedItemIds] = useState<Set<string>>(new Set());
 
@@ -91,12 +93,16 @@ export default function OutfitDisplay({
 
   const handleSaveToBucketList = async (wardrobeItem: any) => {
     try {
+      const numericPrice = typeof wardrobeItem.price === 'number' ? wardrobeItem.price : parseFloat(wardrobeItem.price || '0');
+      const activeCurrencyConfig = CURRENCIES[currency] || CURRENCIES.USD;
+      const convertedPrice = Math.round(numericPrice * activeCurrencyConfig.rate);
+
       await addBucketItem({
         title: wardrobeItem.name,
         category: wardrobeItem.category,
         brand: wardrobeItem.brand || 'Curated Boutique',
-        targetPrice: typeof wardrobeItem.price === 'number' ? wardrobeItem.price : parseFloat(wardrobeItem.price || '0'),
-        currency: '$',
+        targetPrice: convertedPrice,
+        currency: activeCurrencyConfig.symbol,
         imageUrl: wardrobeItem.imageUrl,
         productUrl: wardrobeItem.productUrl || `https://www.google.com/search?q=${encodeURIComponent(`${wardrobeItem.brand || ''} ${wardrobeItem.name}`)}`,
         priority: 'high',
@@ -218,7 +224,7 @@ export default function OutfitDisplay({
                     {/* Price Tag if shoppable */}
                     {isCurated && item.wardrobeItem.price ? (
                       <div className="absolute bottom-2.5 left-2.5 bg-black/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs border border-white/10">
-                        ${item.wardrobeItem.price} {item.wardrobeItem.brand ? `• ${item.wardrobeItem.brand}` : ''}
+                        {formatPriceInCurrency(item.wardrobeItem.price, currency)} {item.wardrobeItem.brand ? `• ${item.wardrobeItem.brand}` : ''}
                       </div>
                     ) : null}
                   </div>
