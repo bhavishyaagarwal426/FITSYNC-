@@ -23,6 +23,35 @@ export interface AIProvider {
   generateOutfitExplanation(items: any[], occasion: string, style: string): Promise<string>;
 }
 
+// ----- Perceptual Image Hashing & Duplicate Detection -----
+
+export async function computeDHash(imagePath: string): Promise<string> {
+  const buffer = await sharp(imagePath)
+    .resize(9, 8, { fit: 'fill' })
+    .grayscale()
+    .raw()
+    .toBuffer();
+
+  let hash = '';
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const left = buffer[y * 9 + x];
+      const right = buffer[y * 9 + (x + 1)];
+      hash += left > right ? '1' : '0';
+    }
+  }
+  return hash;
+}
+
+export function hammingDistance(h1: string, h2: string): number {
+  if (!h1 || !h2 || h1.length !== h2.length) return 64;
+  let dist = 0;
+  for (let i = 0; i < h1.length; i++) {
+    if (h1[i] !== h2[i]) dist++;
+  }
+  return dist;
+}
+
 // ----- Intelligent Local Vision & Heuristics Engine -----
 
 export class SmartLocalVisionProvider implements AIProvider {
@@ -59,6 +88,7 @@ export class SmartLocalVisionProvider implements AIProvider {
     }
 
     const aspectRatio = height / (width || 1);
+    const morphology = await this.extractMorphology(imagePath);
 
     // 2. Detect color from image channels
     let primaryColor = this.detectColor(rMean, gMean, bMean);
@@ -326,36 +356,50 @@ export class SmartLocalVisionProvider implements AIProvider {
       confidence = 0.96;
     }
 
-    // 4. Fallback using userHint or Visual Geometry (aspect ratio & channels)
+    // 4. Fallback using userHint or Visual Geometry (morphology & color channels)
     if (!category) {
       if (userHintCategory && ['tops', 'bottoms', 'footwear', 'outerwear', 'accessories', 'dresses', 'traditional'].includes(userHintCategory.toLowerCase())) {
         category = userHintCategory.toLowerCase();
         subcategory = category === 'accessories' ? 'watch' : category === 'footwear' ? 'sneakers' : category === 'bottoms' ? 'trousers' : 't-shirt';
-        confidence = 0.91;
-      } else if (aspectRatio >= 1.42) {
-        // Tall vertical profile (pants, jeans, maxi dress)
-        category = 'bottoms';
-        subcategory = primaryColor === 'blue' || primaryColor === 'black' ? 'jeans' : 'trousers';
-        material = primaryColor === 'blue' ? 'denim' : 'cotton';
-        confidence = 0.88;
-      } else if (aspectRatio <= 0.75) {
-        // Wide horizontal profile (shoes, sneakers side profile)
-        category = 'footwear';
-        subcategory = 'sneakers';
-        material = 'leather';
-        confidence = 0.87;
-      } else if (aspectRatio >= 0.88 && aspectRatio <= 1.15 && (rMean < 70 || Math.abs(rMean - gMean) < 12)) {
-        // Compact square / circular framing with neutral/metallic tones (watch / accessory)
+        confidence = 0.95;
+      } else if (morphology.isSymmetricStrap) {
+        // Watch / Timepiece with symmetric strap profile (narrow top/bottom strap, central dial)
         category = 'accessories';
         subcategory = 'watch';
         material = 'metal';
+        style = 'smart_casual';
         formality = 'smart_casual';
-        confidence = 0.86;
+        useCases = ['work', 'everyday', 'date_night'];
+        confidence = 0.96;
+      } else if (morphology.isFootwearProfile) {
+        // Horizontal profile footwear
+        category = 'footwear';
+        subcategory = 'sneakers';
+        material = 'leather';
+        style = 'casual';
+        confidence = 0.94;
+      } else if (morphology.fgAspect >= 1.75 && morphology.hasLegSplit) {
+        // Bifurcated tall profile = Jeans / Trousers
+        category = 'bottoms';
+        subcategory = primaryColor === 'blue' || primaryColor === 'black' ? 'jeans' : 'trousers';
+        material = primaryColor === 'blue' ? 'denim' : 'cotton';
+        confidence = 0.93;
+      } else if (morphology.midWidth >= 44 && morphology.coverage >= 0.50) {
+        // Broad shoulder coverage outerwear
+        category = 'outerwear';
+        subcategory = 'jacket';
+        material = 'cotton';
+        season = 'autumn';
+        confidence = 0.91;
+      } else if (aspectRatio >= 1.45) {
+        category = 'bottoms';
+        subcategory = 'trousers';
+        confidence = 0.88;
       } else {
-        // Balanced clothing item (tops)
+        // Balanced upper body clothing
         category = 'tops';
         subcategory = 't-shirt';
-        confidence = 0.85;
+        confidence = 0.88;
       }
     }
 
@@ -382,6 +426,107 @@ export class SmartLocalVisionProvider implements AIProvider {
       useCases,
       confidence,
     };
+  }
+
+  private async extractMorphology(imagePath: string) {
+    try {
+      if (!fs.existsSync(imagePath)) {
+        return { fgAspect: 1.0, coverage: 0.5, isSymmetricStrap: false, hasLegSplit: false, isFootwearProfile: false, midWidth: 32 };
+      }
+      const { data } = await sharp(imagePath)
+        .resize(64, 64, { fit: 'fill' })
+        .removeAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      const W = 64, H = 64;
+      let bgR = 0, bgG = 0, bgB = 0, count = 0;
+      for (const y of [0, 1, 62, 63]) {
+        for (const x of [0, 1, 62, 63]) {
+          const idx = (y * W + x) * 3;
+          bgR += data[idx];
+          bgG += data[idx + 1];
+          bgB += data[idx + 2];
+          count++;
+        }
+      }
+      bgR /= count; bgG /= count; bgB /= count;
+
+      let minX = W, maxX = 0, minY = H, maxY = 0;
+      let fgPixels = 0;
+      const isFg = new Uint8Array(W * H);
+
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const idx = (y * W + x) * 3;
+          const dr = Math.abs(data[idx] - bgR);
+          const dg = Math.abs(data[idx + 1] - bgG);
+          const db = Math.abs(data[idx + 2] - bgB);
+          const diff = (dr + dg + db) / 3;
+          if (diff > 18) {
+            isFg[y * W + x] = 1;
+            fgPixels++;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+
+      if (fgPixels < 40) {
+        return { fgAspect: 1.0, coverage: 0.5, isSymmetricStrap: false, hasLegSplit: false, isFootwearProfile: false, midWidth: 32 };
+      }
+
+      const fgW = Math.max(1, maxX - minX + 1);
+      const fgH = Math.max(1, maxY - minY + 1);
+      const fgAspect = fgH / fgW;
+      const coverage = fgPixels / (fgW * fgH);
+
+      let topWidth = 0, midWidth = 0, botWidth = 0;
+      for (let y = minY; y <= maxY; y++) {
+        let rowMin = W, rowMax = 0, rowCount = 0;
+        for (let x = minX; x <= maxX; x++) {
+          if (isFg[y * W + x]) {
+            rowCount++;
+            if (x < rowMin) rowMin = x;
+            if (x > rowMax) rowMax = x;
+          }
+        }
+        const rowSpan = rowCount > 0 ? (rowMax - rowMin + 1) : 0;
+        const relY = (y - minY) / fgH;
+        if (relY < 0.28) topWidth = Math.max(topWidth, rowSpan);
+        else if (relY < 0.72) midWidth = Math.max(midWidth, rowSpan);
+        else botWidth = Math.max(botWidth, rowSpan);
+      }
+
+      // Watches have narrow straps above and below a wider central dial, with centered bounds
+      const isSymmetricStrap = (topWidth <= midWidth * 0.85 && botWidth <= midWidth * 0.85 && midWidth <= 38 && midWidth >= 10);
+      const isFootwearProfile = fgAspect <= 0.95;
+
+      let hasLegSplit = false;
+      if (fgAspect >= 1.6) {
+        let splitCount = 0;
+        for (let y = Math.floor(minY + fgH * 0.55); y < maxY - 2; y++) {
+          let gap = 0, maxGap = 0, seenFg = false;
+          for (let x = minX; x <= maxX; x++) {
+            if (isFg[y * W + x]) {
+              seenFg = true;
+              if (gap > 2) maxGap = Math.max(maxGap, gap);
+              gap = 0;
+            } else if (seenFg) {
+              gap++;
+            }
+          }
+          if (maxGap >= 3) splitCount++;
+        }
+        if (splitCount >= 4) hasLegSplit = true;
+      }
+
+      return { fgAspect, coverage, topWidth, midWidth, botWidth, isSymmetricStrap, hasLegSplit, isFootwearProfile };
+    } catch {
+      return { fgAspect: 1.0, coverage: 0.5, isSymmetricStrap: false, hasLegSplit: false, isFootwearProfile: false, midWidth: 32 };
+    }
   }
 
   private detectColor(r: number, g: number, b: number): string {

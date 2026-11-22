@@ -74,6 +74,7 @@ export function initializeDatabase(): void {
       is_available INTEGER DEFAULT 1,
       custom_name TEXT,
       notes TEXT,
+      image_hash TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -348,6 +349,13 @@ export function initializeDatabase(): void {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+
+  // Ensure image_hash column exists for duplicate prevention
+  try {
+    database.exec('ALTER TABLE wardrobe_items ADD COLUMN image_hash TEXT');
+  } catch (_e) {
+    // Column already exists
+  }
 
   // Seed style inspirations if empty
   const count = database.prepare('SELECT COUNT(*) as count FROM style_inspirations').get() as { count: number };

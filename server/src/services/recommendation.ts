@@ -37,6 +37,7 @@ export interface ScoredOutfit {
   score: number;
   reasons: string[];
   stylingTechnique?: string;
+  stylingDirective?: string;
   outerwearPrediction?: {
     included: boolean;
     reason: string;
@@ -293,6 +294,20 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
           const key = getItemSetKey(combo);
           if (rejectedKeys.has(key)) continue;
 
+          // Stylist Realism Filter: Prevent jarring formality clashes
+          const topSub = (top.subcategory || '').toLowerCase();
+          const bottomSub = bottom ? (bottom.subcategory || '').toLowerCase() : '';
+          const shoeSub = shoes ? (shoes.subcategory || '').toLowerCase() : '';
+
+          // Hard Rule: Never combine formal dress shoes with athletic sweatpants or gym shorts
+          if (['dress-shoes', 'oxford', 'derby', 'heels'].includes(shoeSub) && ['sweatpants', 'joggers', 'shorts'].includes(bottomSub)) {
+            continue;
+          }
+          // Hard Rule: Never combine formal blazers or dress shirts with athletic sweatpants or shorts
+          if (['blazer', 'dress-shirt'].includes(topSub) && ['sweatpants', 'joggers', 'shorts'].includes(bottomSub)) {
+            continue;
+          }
+
           let score = 0;
           const reasons: string[] = [];
           let stylingTechnique = 'Head-to-Toe Coordinated';
@@ -316,7 +331,31 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             }
           }
 
-          // 2. Classical Color Harmony (Top with Bottom)
+          // 2. Leather & Hardware Synergy (Footwear & Timepiece / Accessories)
+          if (shoes && acc) {
+            const isWarmShoes = ['brown', 'tan', 'beige'].includes(shoeColor);
+            const isWarmAcc = ['brown', 'tan', 'gold', 'beige'].includes(accColor);
+            const isCoolShoes = ['black', 'charcoal', 'grey', 'white'].includes(shoeColor);
+            const isCoolAcc = ['black', 'charcoal', 'grey', 'silver', 'white'].includes(accColor);
+
+            if (isWarmShoes && isWarmAcc) {
+              score += 0.30;
+              stylingTechnique = 'Earth Tone Leather Synergy';
+              reasons.push('Hardware & Leather Synergy: Warm footwear synchronizes flawlessly with your earth-toned timepiece.');
+            } else if (isCoolShoes && isCoolAcc) {
+              score += 0.25;
+              reasons.push('Monochrome Hardware Synergy: Clean timepiece coordinates effortlessly with your footwear tones.');
+            }
+          }
+
+          // 3. Golden 60-30-10 Aesthetic Styling Rule
+          const isNeutralBottom = ['black', 'navy', 'beige', 'grey', 'charcoal', 'white', 'cream', 'blue'].includes(bottomColor);
+          if (isNeutralBottom && topColor && topColor !== bottomColor) {
+            score += 0.25;
+            reasons.push('Structured by the 60-30-10 rule: versatile neutral base accented by purposeful top layering.');
+          }
+
+          // 4. Classical Color Harmony (Top with Bottom)
           if (bottomColor) {
             const harmonies = COLOR_HARMONY[topColor] || [];
             if (harmonies.includes(bottomColor)) {
@@ -329,7 +368,7 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             }
           }
 
-          // 3. Accessory Coordination (Watch / Bag / Jewelry)
+          // 5. Accessory Coordination (Watch / Bag / Jewelry)
           if (acc) {
             score += 0.2;
             const accName = acc.custom_name || acc.subcategory || 'accessory';
@@ -340,21 +379,21 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             }
           }
 
-          // 4. Footwear Grounding
+          // 6. Footwear Grounding
           if (shoes) {
             score += 0.2;
             const shoeName = shoes.custom_name || shoes.subcategory || 'shoes';
             reasons.push(`Grounded with ${shoeName}.`);
           }
 
-          // 5. Outerwear Layering Notes
+          // 7. Outerwear Layering Notes
           if (outer) {
             score += 0.15;
             const outerName = outer.custom_name || outer.subcategory || 'jacket';
             reasons.push(`Structured layer: ${outerName}.`);
           }
 
-          // 6. Pinterest Aesthetic & Moodboard Palette Matching
+          // 8. Pinterest Aesthetic & Moodboard Palette Matching
           const allColors = combo.map((c) => (c.primary_color || '').toLowerCase());
           const paletteToCheck =
             pinterestColorPalette.length > 0 ? pinterestColorPalette : aestheticRule.preferredColors;
@@ -365,7 +404,7 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             reasons.push(`Aligned with ${style} Pinterest moodboard palette (${matchingPaletteColors.join(', ')}).`);
           }
 
-          // 7. Formality & Occasion Alignment
+          // 9. Formality & Occasion Alignment
           const outfitFormalities = combo.map((c) => (c.formality || 'casual').toLowerCase());
           const matchesOccasion = outfitFormalities.every((f) => acceptableFormalities.includes(f));
           if (matchesOccasion) {
@@ -374,7 +413,7 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             score -= 0.1;
           }
 
-          // 8. User Preferred Color boost
+          // 10. User Preferred Color boost
           if (colorPreference && colorPreference !== 'any') {
             if (allColors.includes(colorPreference.toLowerCase())) {
               score += 0.15;
@@ -382,11 +421,22 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             }
           }
 
+          // Actionable Editorial Stylist Directive
+          let stylingDirective = 'Keep the silhouette effortless and proportional.';
+          if (topSub.includes('shirt') || topSub.includes('polo')) {
+            stylingDirective = 'Execute a gentle French tuck at the front waistband to define waistline proportions. Push sleeves up slightly past the wrist to showcase your timepiece.';
+          } else if (topSub.includes('t-shirt') || topSub.includes('tee')) {
+            stylingDirective = 'Cuff the trouser hem cleanly above the footwear to showcase shoe profile and maintain a crisp, modern street silhouette.';
+          } else if (outer) {
+            stylingDirective = 'Keep outerwear unzipped to expose the inner tonal contrast, creating a flattering vertical slimming line.';
+          }
+
           candidates.push({
             items: combo,
             score: Math.min(0.99, Math.max(0.7, score)),
             reasons,
             stylingTechnique,
+            stylingDirective,
             outerwearPrediction,
           });
         }

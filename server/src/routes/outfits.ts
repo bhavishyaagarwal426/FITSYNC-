@@ -169,11 +169,12 @@ async function executeOutfitGeneration(
   const stylingNote = selectedCandidate.stylingTechnique || 'Curated Ensemble';
   const reasonText = selectedCandidate.reasons.length > 0 ? selectedCandidate.reasons.join('. ') : 'Cohesive color coordination and balanced silhouette.';
   const outerwearNote = selectedCandidate.outerwearPrediction?.reason ? ` [Layering: ${selectedCandidate.outerwearPrediction.reason}]` : '';
+  const directiveText = selectedCandidate.stylingDirective ? ` ✨ Directive: ${selectedCandidate.stylingDirective}` : '';
 
   if (pinterestUsername) {
-    explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & aligned with your @${pinterestUsername} moodboard: Complete head-to-toe ensemble combining ${itemNames}.${outerwearNote} ${reasonText}`;
+    explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & aligned with your @${pinterestUsername} moodboard: Complete head-to-toe ensemble combining ${itemNames}.${outerwearNote} ${reasonText}${directiveText}`;
   } else {
-    explanation = `[${stylingNote}] Head-to-toe ensemble combining ${itemNames} strictly from clothes in your digital wardrobe.${outerwearNote} ${reasonText}`;
+    explanation = `[${stylingNote}] Head-to-toe ensemble combining ${itemNames} strictly from clothes in your digital wardrobe.${outerwearNote} ${reasonText}${directiveText}`;
   }
 
   const insertOutfit = db.prepare(`

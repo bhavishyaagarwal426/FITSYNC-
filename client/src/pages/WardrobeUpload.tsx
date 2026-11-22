@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Sparkles, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Sparkles, AlertCircle, ShieldCheck } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useWardrobeStore } from '@/store/wardrobeStore';
 import AppLayout from '@/components/layout/AppLayout';
 import Button from '@/components/ui/Button';
@@ -10,6 +11,7 @@ import type { WardrobeItem } from '@/types';
 export default function WardrobeUpload() {
   const { uploadItem, updateItem } = useWardrobeStore();
   const [uploadedItems, setUploadedItems] = useState<WardrobeItem[]>([]);
+  const [duplicateWarnings, setDuplicateWarnings] = useState<{ filename: string; message: string; existingName?: string }[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -17,10 +19,12 @@ export default function WardrobeUpload() {
   const handleUploadFiles = async (files: File[], categoryHint?: string) => {
     setIsProcessing(true);
     setError(null);
+    setDuplicateWarnings([]);
     const results: WardrobeItem[] = [];
+    const duplicates: { filename: string; message: string; existingName?: string }[] = [];
 
-    try {
-      for (const file of files) {
+    for (const file of files) {
+      try {
         const formData = new FormData();
         formData.append('image', file);
         if (categoryHint) {
@@ -28,13 +32,30 @@ export default function WardrobeUpload() {
         }
         const item = await uploadItem(formData);
         results.push(item);
+      } catch (err: any) {
+        if (err?.isDuplicate) {
+          duplicates.push({
+            filename: file.name,
+            message: err.message || 'Already existing in your digital wardrobe!',
+            existingName: err.existingItem?.name,
+          });
+          toast(`⚠️ "${file.name}" is already in your wardrobe! Skipped duplicate.`, {
+            icon: '⚠️',
+            duration: 4000,
+          });
+        } else {
+          setError(err?.error || err?.message || 'Failed to analyze some garments.');
+        }
       }
-      setUploadedItems(results);
-    } catch (err: any) {
-      setError(err?.response?.data?.error || 'Failed to analyze some garments.');
-    } finally {
-      setIsProcessing(false);
     }
+
+    if (results.length > 0) {
+      setUploadedItems(results);
+    }
+    if (duplicates.length > 0) {
+      setDuplicateWarnings(duplicates);
+    }
+    setIsProcessing(false);
   };
 
   return (
@@ -67,6 +88,42 @@ export default function WardrobeUpload() {
 
         {/* Upload Drop Area */}
         <UploadDropzone onUpload={handleUploadFiles} isLoading={isProcessing} />
+
+        {/* Duplicate Detection Alert */}
+        {duplicateWarnings.length > 0 && (
+          <div className="bg-amber-50 rounded-3xl border border-amber-200 p-6 shadow-sm space-y-3 animate-fadeIn">
+            <div className="flex items-center gap-2 text-amber-800">
+              <ShieldCheck className="w-5 h-5 flex-shrink-0" />
+              <h3 className="text-sm font-bold uppercase tracking-wider">
+                Wardrobe Duplicate Protection ({duplicateWarnings.length})
+              </h3>
+            </div>
+            <p className="text-xs text-amber-700">
+              FITSYNC&apos;s perceptual vision engine detected that the following clothing item(s) are already stored in your digital wardrobe, and automatically skipped duplicate additions to keep your closet neat:
+            </p>
+            <div className="space-y-2 pt-1">
+              {duplicateWarnings.map((dup, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs bg-white/90 px-4 py-2.5 rounded-xl border border-amber-200 text-amber-900 shadow-xs">
+                  <div className="flex items-center gap-2 truncate">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                    <span className="font-semibold truncate max-w-sm">{dup.filename}</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-full flex-shrink-0">
+                    Already in Wardrobe {dup.existingName ? `(${dup.existingName})` : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {error && (
+          <div className="bg-red-50 text-red-800 p-4 rounded-2xl border border-red-200 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Success Feedback Grid */}
         {uploadedItems.length > 0 && (

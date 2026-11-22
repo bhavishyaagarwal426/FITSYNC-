@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 import { getDb } from '../db/database.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { generateId, sanitizeFilename, isValidImageType } from '../utils/helpers.js';
-import { getAIProvider, SmartLocalVisionProvider } from '../services/ai.js';
+import { getAIProvider, SmartLocalVisionProvider, computeDHash, hammingDistance } from '../services/ai.js';
 
 const router = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,6 +62,7 @@ function formatItem(row: any) {
     isAvailable: Boolean(row.is_available),
     timesWorn: 0,
     aiConfidence: row.ai_confidence || 0.95,
+    imageHash: row.image_hash || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -79,6 +80,43 @@ router.post('/upload', authenticate, upload.single('image'), async (req: AuthReq
     const filename = path.basename(originalPath);
     const thumbFilename = `thumb-${filename}`;
     const thumbPath = path.join(THUMBS_DIR, thumbFilename);
+
+    // 1. Calculate Perceptual Image Hash (dHash) & Check for Duplicates
+    let uploadDHash = '';
+    try {
+      uploadDHash = await computeDHash(originalPath);
+    } catch (hashErr) {
+      console.warn('Failed to compute image hash:', hashErr);
+    }
+
+    const db = getDb();
+
+    if (uploadDHash) {
+      const existingHashedItems = db.prepare(`
+        SELECT * FROM wardrobe_items
+        WHERE user_id = ? AND image_hash IS NOT NULL
+      `).all(req.user!.id) as any[];
+
+      const duplicate = existingHashedItems.find((item) => {
+        const dist = hammingDistance(uploadDHash, item.image_hash);
+        return dist <= 4;
+      });
+
+      if (duplicate) {
+        // Clean up uploaded temporary files to prevent server clutter
+        try {
+          if (fs.existsSync(originalPath)) fs.unlinkSync(originalPath);
+        } catch {}
+
+        res.status(409).json({
+          error: 'This garment is already in your digital wardrobe!',
+          isDuplicate: true,
+          message: `"${duplicate.custom_name || duplicate.subcategory || duplicate.category}" already exists in your digital wardrobe. Duplicate upload was prevented.`,
+          existingItem: formatItem(duplicate),
+        });
+        return;
+      }
+    }
 
     // Generate thumbnail using sharp
     try {
@@ -103,19 +141,18 @@ router.post('/upload', authenticate, upload.single('image'), async (req: AuthReq
     }
 
     const id = generateId();
-    const db = getDb();
 
     const insert = db.prepare(`
       INSERT INTO wardrobe_items (
         id, user_id, image_path, thumbnail_path, original_filename,
         category, subcategory, primary_color, secondary_colors, pattern,
         texture, material, style, formality, season, use_cases,
-        ai_confidence, ai_analyzed, is_favorite, is_available, custom_name
+        ai_confidence, ai_analyzed, is_favorite, is_available, custom_name, image_hash
       ) VALUES (
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?,
-        ?, 1, 0, 1, ?
+        ?, 1, 0, 1, ?, ?
       )
     `);
 
@@ -141,7 +178,8 @@ router.post('/upload', authenticate, upload.single('image'), async (req: AuthReq
       analysis.season,
       JSON.stringify(analysis.useCases || []),
       analysis.confidence,
-      customName
+      customName,
+      uploadDHash
     );
 
     const created = db.prepare('SELECT * FROM wardrobe_items WHERE id = ?').get(id);
