@@ -24,6 +24,7 @@ import notificationsRoutes from './routes/notifications.js';
 import privacyRoutes from './routes/privacy.js';
 import adminRoutes from './routes/admin.js';
 import pinterestRoutes from './routes/pinterest.js';
+import bucketListRoutes from './routes/bucketList.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -169,6 +170,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/privacy', privacyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/pinterest', pinterestRoutes);
+app.use('/api/bucket-list', bucketListRoutes);
 
 // Health check endpoint
 app.get('/api/health', (_req, res) => {

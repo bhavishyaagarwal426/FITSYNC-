@@ -345,3 +345,30 @@ export interface ApiError {
   errors?: { field: string; message: string }[];
   statusCode: number;
 }
+
+// ─── Style Bucket List / Wishlist ────────────────────────────────────────────
+
+export interface BucketListItem {
+  id: string;
+  userId: string;
+  title: string;
+  category: string;
+  brand: string;
+  targetPrice: number;
+  currency: string;
+  imageUrl: string;
+  productUrl?: string;
+  priority: 'grail' | 'high' | 'saving' | 'casual';
+  notes?: string;
+  status: 'dreaming' | 'acquired';
+  acquiredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BucketListStats {
+  totalItems: number;
+  totalDesiredValue: number;
+  acquiredCount: number;
+  dreamingCount: number;
+}

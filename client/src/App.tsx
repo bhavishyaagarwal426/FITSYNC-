@@ -16,6 +16,7 @@ const WardrobeUpload = lazy(() => import('@/pages/WardrobeUpload'));
 const WardrobeItem = lazy(() => import('@/pages/WardrobeItem'));
 const StyleMe = lazy(() => import('@/pages/StyleMe'));
 const OutfitView = lazy(() => import('@/pages/OutfitView'));
+const BucketList = lazy(() => import('@/pages/BucketList'));
 const Explore = lazy(() => import('@/pages/Explore'));
 const ExploreDetail = lazy(() => import('@/pages/ExploreDetail'));
 const Community = lazy(() => import('@/pages/Community'));
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="/wardrobe/:id" element={<WardrobeItem />} />
           <Route path="/style-me" element={<StyleMe />} />
           <Route path="/outfit/:id" element={<OutfitView />} />
+          <Route path="/bucket-list" element={<BucketList />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/explore/:id" element={<ExploreDetail />} />
           <Route path="/community" element={<Community />} />

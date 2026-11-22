@@ -327,6 +327,26 @@ export function initializeDatabase(): void {
       created_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    -- Bucket List / Dream Wardrobe / Wishlist Items
+    CREATE TABLE IF NOT EXISTS bucket_list_items (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      category TEXT DEFAULT 'dresses',
+      brand TEXT,
+      target_price REAL DEFAULT 0,
+      currency TEXT DEFAULT '$',
+      image_url TEXT,
+      product_url TEXT,
+      priority TEXT DEFAULT 'high', -- 'grail', 'high', 'saving', 'casual'
+      notes TEXT,
+      status TEXT DEFAULT 'dreaming', -- 'dreaming', 'acquired'
+      acquired_at TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
   `);
 
   // Seed style inspirations if empty
@@ -334,6 +354,9 @@ export function initializeDatabase(): void {
   if (count.count === 0) {
     seedInspirations(database);
   }
+
+  // Seed initial dream bucket list items if empty
+  seedBucketList(database);
 
   console.log('Database initialized successfully');
 }
@@ -361,5 +384,99 @@ function seedInspirations(db: Database.Database) {
 
   for (const insp of inspirations) {
     stmt.run(insp);
+  }
+}
+
+function seedBucketList(db: Database.Database) {
+  try {
+    const existing = db.prepare('SELECT COUNT(*) as count FROM bucket_list_items').get() as { count: number };
+    if (existing.count > 0) return;
+
+    const user = db.prepare("SELECT id FROM users WHERE email = 'demo@fitsync.com' LIMIT 1").get() as { id: string } | undefined;
+    if (!user) return;
+
+    const sampleBucketItems = [
+      {
+        id: 'dream-1',
+        user_id: user.id,
+        title: 'Botanical Silk Flounce Maxi Dress',
+        category: 'dresses',
+        brand: 'Zimmermann',
+        target_price: 795,
+        currency: '$',
+        image_url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80',
+        product_url: 'https://www.zimmermann.com',
+        priority: 'grail',
+        notes: 'Dream gala and Mediterranean summer vacation dress with flutter sleeves and silk organza.',
+        status: 'dreaming',
+      },
+      {
+        id: 'dream-2',
+        user_id: user.id,
+        title: 'Juliette High-Slit Emerald Linen Dress',
+        category: 'dresses',
+        brand: 'Reformation',
+        target_price: 248,
+        currency: '$',
+        image_url: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&q=80',
+        product_url: 'https://www.thereformation.com',
+        priority: 'high',
+        notes: 'Slim fitting through bodice with relaxed skirt and sweet tie straps.',
+        status: 'dreaming',
+      },
+      {
+        id: 'dream-3',
+        user_id: user.id,
+        title: 'Aura Corset Ruched Midi Dress',
+        category: 'dresses',
+        brand: 'House of CB',
+        target_price: 285,
+        currency: '$',
+        image_url: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&q=80',
+        product_url: 'https://www.houseofcb.com',
+        priority: 'saving',
+        notes: 'Sculpted boned corset waist in champagne blush satin.',
+        status: 'dreaming',
+      },
+      {
+        id: 'dream-4',
+        user_id: user.id,
+        title: 'Oversized Double-Breasted Wool Blazer',
+        category: 'outerwear',
+        brand: 'The Frankie Shop',
+        target_price: 395,
+        currency: '$',
+        image_url: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800&q=80',
+        product_url: 'https://thefrankieshop.com',
+        priority: 'high',
+        notes: 'Ideal layering piece for crisp Parisian chic outfits.',
+        status: 'dreaming',
+      },
+      {
+        id: 'dream-5',
+        user_id: user.id,
+        title: 'Classic Slingback Cap-Toe Pumps',
+        category: 'footwear',
+        brand: 'Chanel',
+        target_price: 1100,
+        currency: '$',
+        image_url: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80',
+        product_url: 'https://www.chanel.com',
+        priority: 'grail',
+        notes: 'Beige lambskin and black grosgrain cap toe 65mm block heel.',
+        status: 'dreaming',
+      },
+    ];
+
+    const insert = db.prepare(`
+      INSERT INTO bucket_list_items (id, user_id, title, category, brand, target_price, currency, image_url, product_url, priority, notes, status)
+      VALUES (@id, @user_id, @title, @category, @brand, @target_price, @currency, @image_url, @product_url, @priority, @notes, @status)
+    `);
+
+    for (const item of sampleBucketItems) {
+      insert.run(item);
+    }
+  } catch (err) {
+    console.error('Failed to seed bucket list:', err);
   }
 }

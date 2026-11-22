@@ -7,6 +7,7 @@ import {
   Compass,
   MessageSquare,
   Bookmark,
+  Heart,
   FolderHeart,
   History,
   User,
@@ -37,6 +38,7 @@ export default function Sidebar() {
     { name: 'Explore', path: '/explore', icon: Compass },
     { name: 'Community', path: '/community', icon: MessageSquare },
     { name: 'Saved Outfits', path: '/saved-outfits', icon: Bookmark },
+    { name: 'Style Bucket List', path: '/bucket-list', icon: Heart, badge: 'DREAM' },
     { name: 'Collections', path: '/collections', icon: FolderHeart },
     { name: 'Outfit History', path: '/history', icon: History },
   ];

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Bookmark, Heart, Sparkles, RefreshCw, ExternalLink, Link2, CheckCircle2, X } from 'lucide-react';
 import { useExploreStore } from '@/store/exploreStore';
 import { usePinterestStore } from '@/store/pinterestStore';
+import { useBucketListStore } from '@/store/bucketListStore';
+import toast from 'react-hot-toast';
 import AppLayout from '@/components/layout/AppLayout';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -12,6 +14,7 @@ import { clsx } from 'clsx';
 export default function Explore() {
   const { inspirations, isLoading, fetchInspirations, toggleLike, toggleSave } = useExploreStore();
   const { connection, fetchStatus, connectPinterest, syncPinterest, disconnectPinterest, isConnecting, isLoading: isPinterestLoading } = usePinterestStore();
+  const { addItem: addBucketItem } = useBucketListStore();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
@@ -50,6 +53,24 @@ export default function Explore() {
     const occasionParam = item.occasion || 'casual';
     const colorParam = item.colors?.[0] || '';
     navigate(`/style-me?style=${styleParam}&occasion=${occasionParam}&color=${colorParam}&fromPinterest=true`);
+  };
+
+  const handleAddToBucketList = async (item: any) => {
+    try {
+      await addBucketItem({
+        title: item.title,
+        category: 'dresses',
+        imageUrl: item.image_url || 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80',
+        brand: item.boardName || 'Pinterest Lookbook',
+        priority: 'high',
+        notes: item.description || 'Saved from Explore inspirations',
+        targetPrice: 250,
+        currency: '$',
+      });
+      toast.success(`✨ Added "${item.title}" to your Style Bucket List!`);
+    } catch {
+      toast.error('Failed to add to bucket list');
+    }
   };
 
   return (
@@ -252,14 +273,24 @@ export default function Explore() {
                   ))}
                 </div>
 
-                {/* Direct Action: Recreate Look with Owned Clothes */}
-                <button
-                  onClick={() => handleRecreateWithWardrobe(item)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 px-3 bg-burgundy-50 hover:bg-burgundy-100 text-burgundy-900 rounded-xl text-xs font-bold transition-colors border border-burgundy-200 shadow-xs"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-burgundy-800" />
-                  <span>Match with My Wardrobe</span>
-                </button>
+                {/* Direct Action: Recreate Look with Owned Clothes & Save to Bucket List */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleRecreateWithWardrobe(item)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-3 bg-burgundy-50 hover:bg-burgundy-100 dark:bg-burgundy-950/40 dark:hover:bg-burgundy-900/60 text-burgundy-900 dark:text-burgundy-200 rounded-xl text-xs font-bold transition-colors border border-burgundy-200 dark:border-burgundy-800/40 shadow-xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-burgundy-800 dark:text-burgundy-400" />
+                    <span>Match with Closet</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleAddToBucketList(item)}
+                    className="p-1.5 rounded-xl border border-cream-300 dark:border-[#2D2D38] hover:bg-cream-100 dark:hover:bg-[#25252D] text-burgundy-800 dark:text-burgundy-400 transition-colors shadow-xs"
+                    title="Save to Style Bucket List"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
