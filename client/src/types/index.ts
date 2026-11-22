@@ -179,6 +179,8 @@ export interface GenerateOutfitRequest {
   outerwearOption?: 'auto' | 'yes' | 'no';
   colorPreference?: string;
   excludeItems?: string[];
+  excludeOutfitIds?: string[];
+  differentFromOutfitId?: string;
   formality?: string;
   wardrobeOnly?: boolean;
 }

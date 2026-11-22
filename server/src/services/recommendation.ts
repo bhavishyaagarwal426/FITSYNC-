@@ -27,6 +27,7 @@ export interface RecommendationParams {
   outerwearOption?: 'auto' | 'yes' | 'no';
   colorPreference?: string;
   excludeItems?: string[];
+  differentFromItemIds?: string[];
   rejectedOutfitIds?: string[];
   rejectedItemSets?: string[][];
   pinterestAesthetics?: string[];
@@ -181,6 +182,7 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
     outerwearOption = 'auto',
     colorPreference,
     excludeItems = [],
+    differentFromItemIds = [],
     rejectedItemSets = [],
     pinterestAesthetics = [],
     pinterestColorPalette = [],
@@ -372,6 +374,40 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             stylingTechnique = 'Hybrid Curated Bundle (Wardrobe + Shoppable Picks)';
             const curatedItems = combo.filter((i) => i.is_curated || i.user_id === 'system-curated');
             reasons.push(`Enhanced with ${curatedItems.length} curated shoppable piece${curatedItems.length > 1 ? 's' : ''} to complete the lookbook.`);
+          }
+
+          // Diversity & Big Change against previous outfit (when user requests "Try Another Combo")
+          const diffItemSet = new Set(differentFromItemIds);
+          if (diffItemSet.size > 0) {
+            let overlapCount = 0;
+            for (const it of combo) {
+              if (diffItemSet.has(it.id)) {
+                overlapCount++;
+              }
+            }
+
+            if (overlapCount >= 2) {
+              // Core pieces repeated from previous look - apply heavy penalty
+              score -= 0.85;
+            } else if (overlapCount === 1) {
+              // 1 item shared (e.g. footwear), but top, bottom/dress & accessories are new
+              score += 0.25;
+              stylingTechnique = 'High-Contrast Reimagining (Anchor Pieces Rotated)';
+              reasons.push('Noticeable transformation: core silhouette and styling anchors rotated for a fresh aesthetic.');
+            } else if (overlapCount === 0) {
+              // 100% brand new pieces across every category!
+              score += 0.50;
+              stylingTechnique = 'Dramatic Fresh Alternative (100% Distinct Ensemble)';
+              reasons.push('Dramatic fresh alternative: completely different garments, color palette, and styling silhouette.');
+            }
+
+            // Direct garment category rotation: penalize reusing the exact same anchor top or bottom
+            if (diffItemSet.has(top.id)) {
+              score -= 0.45;
+            }
+            if (bottom && diffItemSet.has(bottom.id)) {
+              score -= 0.45;
+            }
           }
 
           const topColor = (top.primary_color || '').toLowerCase();

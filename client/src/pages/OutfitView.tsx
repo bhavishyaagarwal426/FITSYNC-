@@ -10,11 +10,13 @@ export default function OutfitView() {
   const { id } = useParams<{ id: string }>();
   const { currentOutfit, fetchOutfitById, giveFeedback, generateOutfit, saveOutfit, markAsWorn } = useOutfitStore();
   const [isLoadingAnother, setIsLoadingAnother] = useState(false);
+  const [triedOutfitIds, setTriedOutfitIds] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (id) {
       fetchOutfitById(id);
+      setTriedOutfitIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     }
   }, [id, fetchOutfitById]);
 
@@ -39,14 +41,19 @@ export default function OutfitView() {
   const handleTryAnother = async () => {
     setIsLoadingAnother(true);
     try {
+      const allExcluded = Array.from(new Set([...triedOutfitIds, currentOutfit.id]));
       const nextOutfit = await generateOutfit({
         occasion: currentOutfit.occasion,
         style: currentOutfit.style,
         weather: currentOutfit.weather,
+        excludeOutfitIds: allExcluded,
+        differentFromOutfitId: currentOutfit.id,
       });
+      setTriedOutfitIds((prev) => [...prev, nextOutfit.id]);
       navigate(`/outfit/${nextOutfit.id}`);
+      toast.success('Generated a fresh, completely different look!', { icon: '✨' });
     } catch {
-      toast.error('No other valid combinations found with these exact filters.');
+      toast.error('No other distinct combinations found with these exact filters.');
     } finally {
       setIsLoadingAnother(false);
     }

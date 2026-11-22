@@ -98,6 +98,8 @@ async function executeOutfitGeneration(
     outerwearOption = 'auto',
     colorPreference,
     excludeItems = [],
+    excludeOutfitIds = [],
+    differentFromOutfitId,
     wardrobeOnly = false,
   }: {
     occasion?: string;
@@ -108,6 +110,8 @@ async function executeOutfitGeneration(
     outerwearOption?: 'auto' | 'yes' | 'no';
     colorPreference?: string;
     excludeItems?: string[];
+    excludeOutfitIds?: string[];
+    differentFromOutfitId?: string;
     wardrobeOnly?: boolean;
   }
 ) {
@@ -160,6 +164,31 @@ async function executeOutfitGeneration(
 
   const rejectedItemSets = rejectedRows.map((r: any) => r.item_ids.split(','));
 
+  // If user is trying another combo, actively register previous outfits to force big changes
+  let previousItemIds: string[] = [];
+  const outfitsToExclude = Array.from(
+    new Set([
+      ...(excludeOutfitIds || []),
+      ...(differentFromOutfitId ? [differentFromOutfitId] : []),
+    ])
+  );
+
+  if (outfitsToExclude.length > 0) {
+    const placeholders = outfitsToExclude.map(() => '?').join(',');
+    const prevRows = db.prepare(`
+      SELECT oi.outfit_id, GROUP_CONCAT(oi.wardrobe_item_id) as item_ids
+      FROM outfit_items oi
+      WHERE oi.outfit_id IN (${placeholders})
+      GROUP BY oi.outfit_id
+    `).all(...outfitsToExclude) as any[];
+
+    for (const r of prevRows) {
+      const ids = r.item_ids.split(',');
+      rejectedItemSets.push(ids);
+      previousItemIds.push(...ids);
+    }
+  }
+
   // Retrieve user's linked Pinterest style signals if available
   const pinterestRow = db.prepare('SELECT * FROM pinterest_connections WHERE user_id = ?').get(userId) as any;
   let pinterestAesthetics: string[] = [];
@@ -184,6 +213,7 @@ async function executeOutfitGeneration(
     outerwearOption,
     colorPreference,
     excludeItems,
+    differentFromItemIds: Array.from(new Set(previousItemIds)),
     rejectedItemSets,
     pinterestAesthetics,
     pinterestColorPalette,
@@ -206,7 +236,23 @@ async function executeOutfitGeneration(
     return;
   }
 
-  const selectedCandidate = candidates[0];
+  // Maximize difference when previous outfits are being rotated
+  let selectedCandidate = candidates[0];
+  if (previousItemIds.length > 0) {
+    const prevSet = new Set(previousItemIds);
+    let minOverlap = Infinity;
+    let bestCand = candidates[0];
+    for (const cand of candidates) {
+      const overlap = cand.items.filter((i: any) => prevSet.has(i.id)).length;
+      if (overlap < minOverlap) {
+        minOverlap = overlap;
+        bestCand = cand;
+      }
+      if (minOverlap === 0) break; // Complete 100% fresh transformation found
+    }
+    selectedCandidate = bestCand;
+  }
+
   const outfitId = generateId();
 
   let explanation = '';
@@ -277,6 +323,8 @@ router.post(
     body('gender').optional().isString(),
     body('colorPreference').optional().isString(),
     body('excludeItems').optional().isArray(),
+    body('excludeOutfitIds').optional().isArray(),
+    body('differentFromOutfitId').optional().isString(),
     body('wardrobeOnly').optional().isBoolean(),
   ]),
   async (req: AuthRequest, res: Response): Promise<void> => {
