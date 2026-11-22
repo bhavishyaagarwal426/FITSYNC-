@@ -23,6 +23,7 @@ export interface RecommendationParams {
   style: string;
   weather?: string;
   season?: string;
+  gender?: 'men' | 'women' | 'unisex' | 'all';
   outerwearOption?: 'auto' | 'yes' | 'no';
   colorPreference?: string;
   excludeItems?: string[];
@@ -176,6 +177,7 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
     style = 'casual',
     weather = 'moderate',
     season = '',
+    gender = 'unisex',
     outerwearOption = 'auto',
     colorPreference,
     excludeItems = [],
@@ -184,10 +186,27 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
     pinterestColorPalette = [],
   } = params;
 
-  // Filter available and non-excluded items
+  const targetGender = (gender || 'unisex').toLowerCase();
+
+  // Filter available, non-excluded, and gender-aligned items
   const available = items.filter((i) => {
     if (!i.is_available) return false;
     if (excludeItems.includes(i.id)) return false;
+
+    const itemGender = (i.gender || 'unisex').toLowerCase();
+    const itemCat = (i.category || '').toLowerCase();
+    const itemSub = (i.subcategory || '').toLowerCase();
+
+    if (targetGender === 'men') {
+      // Men styling excludes explicit women items, dresses, skirts, high heels
+      if (itemGender === 'women') return false;
+      if (itemCat === 'dresses') return false;
+      if (['skirt', 'heels'].includes(itemSub)) return false;
+    } else if (targetGender === 'women') {
+      // Women styling excludes explicit men items
+      if (itemGender === 'men') return false;
+    }
+
     return true;
   });
 
@@ -330,6 +349,24 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
 
           // Wardrobe Affinity: reward using owned clothes (+0.10 per owned piece)
           score += ownedCount * 0.10;
+
+          // Gender styling alignment
+          if (targetGender === 'women') {
+            if (base.isDress) {
+              score += 0.25;
+              stylingTechnique = 'Chic Feminine Silhouette (Statement Dress)';
+              reasons.push('Feminine styling: styled around an elegant dress centerpiece.');
+            } else if (bottomSub === 'skirt') {
+              score += 0.20;
+              stylingTechnique = 'Refined Feminine Ensemble (Flowing Skirt)';
+              reasons.push('Feminine styling: elevated with a tailored skirt silhouette.');
+            }
+            const womenMatches = combo.filter((i) => (i.gender || '').toLowerCase() === 'women').length;
+            score += womenMatches * 0.08;
+          } else if (targetGender === 'men') {
+            const menMatches = combo.filter((i) => (i.gender || '').toLowerCase() === 'men').length;
+            score += menMatches * 0.08;
+          }
 
           if (curatedCount > 0) {
             stylingTechnique = 'Hybrid Curated Bundle (Wardrobe + Shoppable Picks)';

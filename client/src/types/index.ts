@@ -6,6 +6,7 @@ export interface User {
   displayName: string;
   avatarUrl?: string;
   bio?: string;
+  gender?: 'men' | 'women' | 'unisex' | 'all';
   role: 'user' | 'admin';
   status: 'active' | 'suspended' | 'deleted';
   onboardingCompleted: boolean;
@@ -21,6 +22,7 @@ export interface UserPreferences {
   favouriteColours: string[];
   preferredOccasions: string[];
   preferredCategories: string[];
+  gender?: 'men' | 'women' | 'unisex' | 'all';
   bodyType?: string;
   height?: string;
   preferredFit?: string;
@@ -173,6 +175,7 @@ export interface GenerateOutfitRequest {
   style: string;
   weather?: string;
   season?: string;
+  gender?: 'men' | 'women' | 'unisex' | 'all';
   outerwearOption?: 'auto' | 'yes' | 'no';
   colorPreference?: string;
   excludeItems?: string[];

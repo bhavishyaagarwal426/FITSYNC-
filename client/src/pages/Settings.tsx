@@ -13,6 +13,7 @@ export default function Settings() {
   const { user, updateProfile } = useAuthStore();
   const { theme, setTheme } = useUIStore();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [gender, setGender] = useState<'men' | 'women' | 'unisex'>((user?.gender as any) || 'unisex');
   const [preferredStyles, setPreferredStyles] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
@@ -20,8 +21,28 @@ export default function Settings() {
   useEffect(() => {
     api.get('/preferences').then((res: any) => {
       setPreferredStyles(res.preferredStyles || []);
+      if (res.gender) setGender(res.gender);
     }).catch(() => {});
   }, []);
+
+  const handleGenderChange = async (newGender: 'men' | 'women' | 'unisex') => {
+    setGender(newGender);
+    try {
+      await api.put('/preferences', { gender: newGender });
+      await updateProfile({ gender: newGender } as any);
+      toast.success(
+        `Styling profile updated to ${
+          newGender === 'women'
+            ? "Women's Fashion 🌸"
+            : newGender === 'men'
+            ? "Men's Fashion 👔"
+            : 'Unisex / Fluid ✨'
+        }`
+      );
+    } catch {
+      toast.error('Failed to update styling preference.');
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,7 +212,98 @@ export default function Settings() {
           </div>
         </section>
 
-        {/* 2. Account Details */}
+        {/* 2. Gender & Styling Expression */}
+        <section className="bg-white dark:bg-[#1A1A1E] rounded-3xl border border-cream-300 dark:border-[#2A2A33] p-6 md:p-8 shadow-card space-y-6 transition-colors">
+          <div className="flex items-center justify-between border-b border-cream-200 dark:border-[#272730] pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">✨</span>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-charcoal-800 dark:text-cream-100">
+                Gender & Styling Expression
+              </h2>
+            </div>
+            <span className="text-[11px] font-semibold text-charcoal-400 dark:text-charcoal-500">
+              Active:{' '}
+              <span className="text-burgundy-800 dark:text-burgundy-400 font-bold capitalize">
+                {gender === 'women'
+                  ? "Women's Fashion 🌸"
+                  : gender === 'men'
+                  ? "Men's Fashion 👔"
+                  : 'Unisex & Fluid ✨'}
+              </span>
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs text-charcoal-600 dark:text-charcoal-300">
+              Control the silhouette, garment types, and curated designer shopping recommendations proposed by your AI Stylist.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+              {[
+                {
+                  id: 'women',
+                  title: "Women's Fashion",
+                  icon: '🌸',
+                  desc: 'Dresses, flowing skirts, silk blouses, heels, designer shoulder bags, and feminine luxury styling.',
+                },
+                {
+                  id: 'men',
+                  title: "Men's Fashion",
+                  icon: '👔',
+                  desc: 'Tailored blazers, oxford button-downs, polo shirts, chinos, boots, derbies, and masculine watches.',
+                },
+                {
+                  id: 'unisex',
+                  title: 'All / Fluid & Unisex',
+                  icon: '✨',
+                  desc: 'Versatile minimalist essentials, genderless silhouettes, clean sneakers, and contemporary basics.',
+                },
+              ].map((g) => {
+                const isSelected = gender === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => handleGenderChange(g.id as any)}
+                    className={`relative p-4 rounded-2xl border text-left transition-all flex flex-col justify-between group ${
+                      isSelected
+                        ? 'border-burgundy-800 bg-cream-50/90 dark:bg-[#1E1E24] shadow-md ring-2 ring-burgundy-800/20'
+                        : 'border-cream-300 dark:border-[#2D2D38] bg-cream-50/40 dark:bg-[#202026] hover:border-burgundy-700/50'
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#16161A] border border-cream-300 dark:border-[#2E2E38] text-base flex items-center justify-center shadow-xs">
+                          {g.icon}
+                        </div>
+                        {isSelected && (
+                          <span className="w-5 h-5 rounded-full bg-burgundy-800 dark:bg-burgundy-700 text-white flex items-center justify-center">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-bold text-charcoal-900 dark:text-cream-100 mb-1">
+                        {g.title}
+                      </h4>
+                      <p className="text-[11px] text-charcoal-500 dark:text-charcoal-400 leading-relaxed">
+                        {g.desc}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-2 border-t border-cream-200 dark:border-[#2D2D38] flex items-center justify-between">
+                      <span className="text-[10px] text-charcoal-400">Styling Rules</span>
+                      <span className="text-[10px] text-burgundy-800 dark:text-burgundy-400 font-semibold">
+                        {isSelected ? 'Active Profile' : 'Select'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* 3. Account Details */}
         <section className="bg-white dark:bg-[#1A1A1E] rounded-3xl border border-cream-300 dark:border-[#2A2A33] p-6 md:p-8 shadow-card space-y-6 transition-colors">
           <div className="flex items-center gap-2 border-b border-cream-200 dark:border-[#272730] pb-3">
             <User className="w-4 h-4 text-burgundy-800 dark:text-burgundy-400" />

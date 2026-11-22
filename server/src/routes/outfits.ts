@@ -94,6 +94,7 @@ async function executeOutfitGeneration(
     style = 'casual',
     weather = 'moderate',
     season = '',
+    gender,
     outerwearOption = 'auto',
     colorPreference,
     excludeItems = [],
@@ -103,6 +104,7 @@ async function executeOutfitGeneration(
     style?: string;
     weather?: string;
     season?: string;
+    gender?: 'men' | 'women' | 'unisex' | 'all';
     outerwearOption?: 'auto' | 'yes' | 'no';
     colorPreference?: string;
     excludeItems?: string[];
@@ -110,6 +112,9 @@ async function executeOutfitGeneration(
   }
 ) {
   const db = getDb();
+
+  const userRow = db.prepare('SELECT gender FROM users WHERE id = ?').get(userId) as any;
+  const targetGender = (gender || userRow?.gender || 'unisex').toLowerCase() as 'men' | 'women' | 'unisex' | 'all';
 
   // Retrieve user's owned wardrobe items
   const userItems = db.prepare(`
@@ -175,6 +180,7 @@ async function executeOutfitGeneration(
     style,
     weather,
     season,
+    gender: targetGender,
     outerwearOption,
     colorPreference,
     excludeItems,
@@ -268,6 +274,7 @@ router.post(
     body('weather').optional().isString(),
     body('season').optional().isString(),
     body('outerwearOption').optional().isString(),
+    body('gender').optional().isString(),
     body('colorPreference').optional().isString(),
     body('excludeItems').optional().isArray(),
     body('wardrobeOnly').optional().isBoolean(),

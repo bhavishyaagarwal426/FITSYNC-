@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Sparkles, Dices, ArrowRight, AlertCircle, CheckCircle2, ShieldCheck, Thermometer, Layers, ShoppingBag, Lock } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useAuthStore } from '@/store/authStore';
 import { useOutfitStore } from '@/store/outfitStore';
 import { useWardrobeStore } from '@/store/wardrobeStore';
 import { usePinterestStore } from '@/store/pinterestStore';
@@ -14,7 +15,11 @@ import ColorSelector from '@/components/styleme/ColorSelector';
 
 export default function StyleMe() {
   const [searchParams] = useSearchParams();
+  const { user } = useAuthStore();
   const [occasion, setOccasion] = useState(searchParams.get('occasion') || 'casual');
+  const [gender, setGender] = useState<'men' | 'women' | 'unisex' | 'all'>(
+    (searchParams.get('gender') as any) || (user?.gender as any) || 'unisex'
+  );
   const [style, setStyle] = useState(searchParams.get('style') || 'casual');
   const [weather, setWeather] = useState('moderate');
   const [season, setSeason] = useState(searchParams.get('season') || 'autumn');
@@ -39,6 +44,7 @@ export default function StyleMe() {
     if (searchParams.get('occasion')) setOccasion(searchParams.get('occasion')!);
     if (searchParams.get('color')) setColorPreference(searchParams.get('color')!);
     if (searchParams.get('season')) setSeason(searchParams.get('season')!);
+    if (searchParams.get('gender')) setGender(searchParams.get('gender') as any);
     if (searchParams.get('wardrobeOnly')) setWardrobeOnly(searchParams.get('wardrobeOnly') === 'true');
   }, [searchParams]);
 
@@ -50,6 +56,7 @@ export default function StyleMe() {
         style,
         weather,
         season,
+        gender,
         outerwearOption,
         colorPreference,
         wardrobeOnly,
@@ -150,13 +157,68 @@ export default function StyleMe() {
           {/* 1. Occasion */}
           <OccasionSelector value={occasion} onChange={setOccasion} />
 
-          {/* 2. Style Aesthetic */}
+          {/* 2. Gender & Styling Expression */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700 dark:text-charcoal-300">
+                2. Styling Expression
+              </label>
+              <span className="text-[11px] font-semibold text-burgundy-800 dark:text-burgundy-400 capitalize">
+                {gender === 'women'
+                  ? "Women's Fashion (Dresses, Skirts, Blouses, Heels)"
+                  : gender === 'men'
+                  ? "Men's Fashion (Tailoring, Oxfords, Chinos, Boots)"
+                  : 'Unisex & Fluid (Minimalist Essentials)'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  id: 'women',
+                  title: "🌸 Women's Fashion",
+                  desc: 'Dresses, flowing skirts, feminine blouses, heels, and curated designer bags',
+                },
+                {
+                  id: 'men',
+                  title: "👔 Men's Fashion",
+                  desc: 'Tailored blazers, oxfords, polo collars, chinos, and masculine classic cuts',
+                },
+                {
+                  id: 'unisex',
+                  title: '✨ Unisex & Fluid',
+                  desc: 'Gender-free minimalist pieces, oversized knits, and versatile sneakers',
+                },
+              ].map((g) => {
+                const isSelected = gender === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => setGender(g.id as any)}
+                    className={`p-3.5 rounded-2xl border text-left transition-all ${
+                      isSelected
+                        ? 'border-burgundy-800 bg-burgundy-50/70 dark:bg-burgundy-950/40 ring-2 ring-burgundy-800 text-burgundy-950 dark:text-cream-100 shadow-xs'
+                        : 'border-cream-300 dark:border-[#2D2D38] bg-white dark:bg-[#1E1E24] text-charcoal-700 dark:text-charcoal-300 hover:border-cream-400'
+                    }`}
+                  >
+                    <span className="block text-xs font-bold mb-1">{g.title}</span>
+                    <span className="block text-[11px] text-charcoal-500 dark:text-charcoal-400 leading-relaxed">
+                      {g.desc}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 3. Style Aesthetic */}
           <StyleSelector value={style} onChange={setStyle} />
 
-          {/* 3. Season & Climate Selection */}
+          {/* 4. Target Season */}
           <div className="space-y-3">
             <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700 dark:text-charcoal-300">
-              3. Target Season
+              4. Target Season
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
@@ -182,14 +244,14 @@ export default function StyleMe() {
             </div>
           </div>
 
-          {/* 4. Weather Condition */}
+          {/* 5. Weather Condition */}
           <WeatherSelector value={weather} onChange={setWeather} />
 
-          {/* 5. Outerwear & Layering Preference (Jacket / Coat / Blazer) */}
+          {/* 6. Outerwear & Layering Preference (Jacket / Coat / Blazer) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700 dark:text-charcoal-300">
-                5. Outerwear & Layering (Optional)
+                6. Outerwear & Layering (Optional)
               </label>
               <span className="text-[11px] font-semibold text-burgundy-800 dark:text-burgundy-400">
                 {outerwearOption === 'auto'
@@ -239,13 +301,13 @@ export default function StyleMe() {
             </div>
           </div>
 
-          {/* 6. Curated Shopping Suggestions vs Closet Only Toggle */}
+          {/* 7. Curated Shopping Suggestions vs Closet Only Toggle */}
           <div className="bg-cream-50/80 dark:bg-[#151518] p-5 rounded-3xl border border-cream-300 dark:border-[#2D2D38] space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold uppercase tracking-wider text-charcoal-800 dark:text-cream-100">
-                    6. Wardrobe Sourcing Mode
+                    7. Wardrobe Sourcing Mode
                   </span>
                   <span
                     className={clsx(
@@ -325,7 +387,7 @@ export default function StyleMe() {
             </div>
           </div>
 
-          {/* 7. Color Preference */}
+          {/* 8. Color Preference */}
           <ColorSelector value={colorPreference} onChange={setColorPreference} />
 
           {/* Guaranteed Category Composition Callout */}

@@ -32,6 +32,7 @@ export function initializeDatabase(): void {
       email_verified INTEGER DEFAULT 0,
       age_confirmed INTEGER DEFAULT 0,
       onboarding_completed INTEGER DEFAULT 0,
+      gender TEXT DEFAULT 'unisex',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       last_login TEXT,
@@ -46,6 +47,7 @@ export function initializeDatabase(): void {
       favourite_colours TEXT DEFAULT '[]',
       preferred_occasions TEXT DEFAULT '[]',
       preferred_categories TEXT DEFAULT '[]',
+      gender TEXT DEFAULT 'unisex',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -76,6 +78,7 @@ export function initializeDatabase(): void {
       custom_name TEXT,
       notes TEXT,
       image_hash TEXT,
+      gender TEXT DEFAULT 'unisex',
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -357,7 +360,8 @@ export function initializeDatabase(): void {
     'brand TEXT',
     'price REAL DEFAULT 0',
     'product_url TEXT',
-    'is_curated INTEGER DEFAULT 0'
+    'is_curated INTEGER DEFAULT 0',
+    "gender TEXT DEFAULT 'unisex'"
   ]) {
     try {
       database.exec(`ALTER TABLE wardrobe_items ADD COLUMN ${col}`);
@@ -365,6 +369,13 @@ export function initializeDatabase(): void {
       // Column already exists
     }
   }
+
+  try {
+    database.exec("ALTER TABLE users ADD COLUMN gender TEXT DEFAULT 'unisex'");
+  } catch (_e) {}
+  try {
+    database.exec("ALTER TABLE user_preferences ADD COLUMN gender TEXT DEFAULT 'unisex'");
+  } catch (_e) {}
 
   // Seed style inspirations if empty
   const count = database.prepare('SELECT COUNT(*) as count FROM style_inspirations').get() as { count: number };

@@ -98,7 +98,7 @@ router.post('/login', validate(loginValidation), async (req: AuthRequest, res: R
     const db = getDb();
 
     const user = db.prepare(`
-      SELECT id, email, password_hash, display_name, profile_picture, role, is_active, onboarding_completed
+      SELECT id, email, password_hash, display_name, profile_picture, role, is_active, onboarding_completed, gender
       FROM users WHERE email = ?
     `).get(email) as any;
 
@@ -136,6 +136,7 @@ router.post('/login', validate(loginValidation), async (req: AuthRequest, res: R
         displayName: user.display_name,
         profilePicture: user.profile_picture,
         role: user.role,
+        gender: user.gender || 'unisex',
         onboardingCompleted: Boolean(user.onboarding_completed),
       },
     });
@@ -155,7 +156,7 @@ router.post('/logout', (_req: AuthRequest, res: Response): void => {
 router.get('/me', authenticate, (req: AuthRequest, res: Response): void => {
   const db = getDb();
   const user = db.prepare(`
-    SELECT id, email, display_name, profile_picture, role, email_verified, age_confirmed, onboarding_completed, created_at
+    SELECT id, email, display_name, profile_picture, role, email_verified, age_confirmed, onboarding_completed, gender, created_at
     FROM users WHERE id = ?
   `).get(req.user!.id) as any;
 
@@ -170,6 +171,7 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response): void => {
     displayName: user.display_name,
     avatarUrl: user.profile_picture,
     role: user.role,
+    gender: user.gender || 'unisex',
     emailVerified: Boolean(user.email_verified),
     ageConfirmed: Boolean(user.age_confirmed),
     onboardingCompleted: Boolean(user.onboarding_completed),
@@ -184,10 +186,11 @@ router.put(
   validate([
     body('displayName').optional().trim().isLength({ min: 2, max: 50 }),
     body('profilePicture').optional().isString(),
+    body('gender').optional().isIn(['men', 'women', 'unisex', 'all']),
     body('onboardingCompleted').optional().isBoolean(),
   ]),
   (req: AuthRequest, res: Response): void => {
-    const { displayName, profilePicture, onboardingCompleted } = req.body;
+    const { displayName, profilePicture, gender, onboardingCompleted } = req.body;
     const db = getDb();
 
     const updates: string[] = ["updated_at = datetime('now')"];
@@ -201,6 +204,10 @@ router.put(
       updates.push('profile_picture = ?');
       params.push(profilePicture);
     }
+    if (gender !== undefined) {
+      updates.push('gender = ?');
+      params.push(gender);
+    }
     if (onboardingCompleted !== undefined) {
       updates.push('onboarding_completed = ?');
       params.push(onboardingCompleted ? 1 : 0);
@@ -210,7 +217,7 @@ router.put(
     db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...params);
 
     const updated = db.prepare(`
-      SELECT id, email, display_name, profile_picture, role, onboarding_completed
+      SELECT id, email, display_name, profile_picture, role, gender, onboarding_completed
       FROM users WHERE id = ?
     `).get(req.user!.id) as any;
 
@@ -220,6 +227,7 @@ router.put(
       displayName: updated.display_name,
       avatarUrl: updated.profile_picture,
       role: updated.role,
+      gender: updated.gender || 'unisex',
       onboardingCompleted: Boolean(updated.onboarding_completed),
     });
   }
