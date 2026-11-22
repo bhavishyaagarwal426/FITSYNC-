@@ -11,13 +11,26 @@ import { getAIProvider } from '../services/ai.js';
 const router = Router();
 
 function formatOutfitItem(itemRow: any) {
+  const isCurated = Boolean(itemRow.is_curated || itemRow.user_id === 'system-curated');
+  const imgUrl = itemRow.image_path.startsWith('http')
+    ? itemRow.image_path
+    : itemRow.image_path.startsWith('/uploads')
+    ? itemRow.image_path
+    : `/uploads/${path.basename(itemRow.image_path)}`;
+
+  const thumbUrl = itemRow.thumbnail_path
+    ? itemRow.thumbnail_path.startsWith('http')
+      ? itemRow.thumbnail_path
+      : itemRow.thumbnail_path.startsWith('/uploads')
+      ? itemRow.thumbnail_path
+      : `/uploads/thumbnails/${path.basename(itemRow.thumbnail_path)}`
+    : imgUrl;
+
   return {
     id: itemRow.id,
     userId: itemRow.user_id,
-    imageUrl: itemRow.image_path.startsWith('/uploads') ? itemRow.image_path : `/uploads/${path.basename(itemRow.image_path)}`,
-    thumbnailUrl: itemRow.thumbnail_path
-      ? (itemRow.thumbnail_path.startsWith('/uploads') ? itemRow.thumbnail_path : `/uploads/thumbnails/${path.basename(itemRow.thumbnail_path)}`)
-      : (itemRow.image_path.startsWith('/uploads') ? itemRow.image_path : `/uploads/${path.basename(itemRow.image_path)}`),
+    imageUrl: imgUrl,
+    thumbnailUrl: thumbUrl,
     name: itemRow.custom_name || `${itemRow.primary_color || ''} ${itemRow.subcategory || itemRow.category}`.trim(),
     category: itemRow.category,
     subcategory: itemRow.subcategory || '',
@@ -25,6 +38,10 @@ function formatOutfitItem(itemRow: any) {
     secondaryColor: itemRow.secondary_colors ? JSON.parse(itemRow.secondary_colors || '[]')[0] || '' : '',
     pattern: itemRow.pattern || 'solid',
     material: itemRow.material || '',
+    brand: itemRow.brand || (isCurated ? 'Curated Selection' : ''),
+    price: itemRow.price || 0,
+    productUrl: itemRow.product_url || '',
+    isCuratedSuggestion: isCurated,
     style: itemRow.style || 'casual',
     formality: itemRow.formality || 'casual',
     season: itemRow.season || 'all',
@@ -80,6 +97,7 @@ async function executeOutfitGeneration(
     outerwearOption = 'auto',
     colorPreference,
     excludeItems = [],
+    wardrobeOnly = false,
   }: {
     occasion?: string;
     style?: string;
@@ -88,19 +106,39 @@ async function executeOutfitGeneration(
     outerwearOption?: 'auto' | 'yes' | 'no';
     colorPreference?: string;
     excludeItems?: string[];
+    wardrobeOnly?: boolean;
   }
 ) {
   const db = getDb();
 
-  // Retrieve eligible wardrobe items
-  const items = db.prepare(`
+  // Retrieve user's owned wardrobe items
+  const userItems = db.prepare(`
     SELECT * FROM wardrobe_items
     WHERE user_id = ? AND is_available = 1
   `).all(userId) as any[];
 
+  // If user requested strictly clothes from their wardrobe, but their closet is empty
+  if (wardrobeOnly && (!userItems || userItems.length === 0)) {
+    res.status(400).json({
+      error: 'Your wardrobe is empty. Please upload some clothes first or turn off "Only Clothes in My Wardrobe" to allow curated shopping suggestions!',
+      missingCategories: ['tops', 'bottoms', 'footwear', 'accessories'],
+    });
+    return;
+  }
+
+  // Sourcing items: user owned + curated suggestions (when wardrobeOnly is false)
+  let items = [...userItems];
+  if (!wardrobeOnly) {
+    const curatedItems = db.prepare(`
+      SELECT * FROM wardrobe_items
+      WHERE is_curated = 1 AND is_available = 1
+    `).all() as any[];
+    items = [...userItems, ...curatedItems];
+  }
+
   if (!items || items.length === 0) {
     res.status(400).json({
-      error: 'Your wardrobe is empty. Please upload some clothes first!',
+      error: 'No clothing items available to style. Please upload clothes to your wardrobe.',
       missingCategories: ['tops', 'bottoms', 'footwear', 'accessories'],
     });
     return;
@@ -143,6 +181,7 @@ async function executeOutfitGeneration(
     rejectedItemSets,
     pinterestAesthetics,
     pinterestColorPalette,
+    wardrobeOnly,
   });
 
   if (!candidates || candidates.length === 0) {
@@ -156,7 +195,7 @@ async function executeOutfitGeneration(
     res.status(422).json({
       error: 'Could not assemble a complete outfit with your current wardrobe items and filters.',
       missingCategories: missing,
-      suggestion: 'Try relaxing your style/color filters or uploading additional wardrobe categories.',
+      suggestion: 'Try relaxing your style/color filters or allow curated suggestions in Style Me.',
     });
     return;
   }
@@ -171,10 +210,29 @@ async function executeOutfitGeneration(
   const outerwearNote = selectedCandidate.outerwearPrediction?.reason ? ` [Layering: ${selectedCandidate.outerwearPrediction.reason}]` : '';
   const directiveText = selectedCandidate.stylingDirective ? ` ✨ Directive: ${selectedCandidate.stylingDirective}` : '';
 
-  if (pinterestUsername) {
-    explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & aligned with your @${pinterestUsername} moodboard: Complete head-to-toe ensemble combining ${itemNames}.${outerwearNote} ${reasonText}${directiveText}`;
+  const hasCurated = selectedCandidate.items.some((i: any) => i.is_curated || i.user_id === 'system-curated');
+  const ownedNames = selectedCandidate.items
+    .filter((i: any) => !i.is_curated && i.user_id !== 'system-curated')
+    .map((i: any) => i.custom_name || i.subcategory || i.category);
+  const curatedNames = selectedCandidate.items
+    .filter((i: any) => i.is_curated || i.user_id === 'system-curated')
+    .map((i: any) => `${i.brand || ''} ${i.custom_name || i.subcategory || i.category}`.trim());
+
+  if (hasCurated) {
+    const ownedPart = ownedNames.length > 0 ? `Owned clothes [${ownedNames.join(', ')}]` : '';
+    const curatedPart = `Curated Suggestions [${curatedNames.join(', ')}]`;
+    const connector = ownedPart ? ` paired with ` : ``;
+    if (pinterestUsername) {
+      explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & @${pinterestUsername} moodboard: ${ownedPart}${connector}${curatedPart}.${outerwearNote} ${reasonText}${directiveText}`;
+    } else {
+      explanation = `[${stylingNote}] ${ownedPart}${connector}${curatedPart}.${outerwearNote} ${reasonText}${directiveText}`;
+    }
   } else {
-    explanation = `[${stylingNote}] Head-to-toe ensemble combining ${itemNames} strictly from clothes in your digital wardrobe.${outerwearNote} ${reasonText}${directiveText}`;
+    if (pinterestUsername) {
+      explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & aligned with your @${pinterestUsername} moodboard: Complete head-to-toe ensemble combining ${itemNames}.${outerwearNote} ${reasonText}${directiveText}`;
+    } else {
+      explanation = `[${stylingNote}] Head-to-toe ensemble combining ${itemNames} strictly from clothes in your digital wardrobe.${outerwearNote} ${reasonText}${directiveText}`;
+    }
   }
 
   const insertOutfit = db.prepare(`
@@ -212,6 +270,7 @@ router.post(
     body('outerwearOption').optional().isString(),
     body('colorPreference').optional().isString(),
     body('excludeItems').optional().isArray(),
+    body('wardrobeOnly').optional().isBoolean(),
   ]),
   async (req: AuthRequest, res: Response): Promise<void> => {
     try {

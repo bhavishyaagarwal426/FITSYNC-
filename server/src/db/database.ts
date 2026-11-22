@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { seedCuratedCatalog } from './curatedCatalog.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = path.join(__dirname, '..', '..', 'data', 'fitsync.db');
@@ -350,11 +351,19 @@ export function initializeDatabase(): void {
     );
   `);
 
-  // Ensure image_hash column exists for duplicate prevention
-  try {
-    database.exec('ALTER TABLE wardrobe_items ADD COLUMN image_hash TEXT');
-  } catch (_e) {
-    // Column already exists
+  // Ensure columns exist for duplicate prevention and curated suggestions
+  for (const col of [
+    'image_hash TEXT',
+    'brand TEXT',
+    'price REAL DEFAULT 0',
+    'product_url TEXT',
+    'is_curated INTEGER DEFAULT 0'
+  ]) {
+    try {
+      database.exec(`ALTER TABLE wardrobe_items ADD COLUMN ${col}`);
+    } catch (_e) {
+      // Column already exists
+    }
   }
 
   // Seed style inspirations if empty
@@ -365,6 +374,9 @@ export function initializeDatabase(): void {
 
   // Seed initial dream bucket list items if empty
   seedBucketList(database);
+
+  // Seed curated fashion shopping suggestions for AI styling
+  seedCuratedCatalog(database);
 
   console.log('Database initialized successfully');
 }

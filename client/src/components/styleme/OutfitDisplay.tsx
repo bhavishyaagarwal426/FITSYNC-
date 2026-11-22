@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Heart,
   ThumbsDown,
@@ -9,9 +9,15 @@ import {
   Sparkles,
   Info,
   CheckCircle2,
+  ShoppingBag,
+  ExternalLink,
+  BookmarkPlus,
+  Tag,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import toast from 'react-hot-toast';
 import type { Outfit } from '@/types';
+import { useBucketListStore } from '@/store/bucketListStore';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
@@ -71,10 +77,38 @@ export default function OutfitDisplay({
   const isLoved = outfit.feedback?.rating === 'loved';
   const isRejected = outfit.feedback?.rating === 'rejected';
 
+  const { addItem: addBucketItem } = useBucketListStore();
+  const [savedItemIds, setSavedItemIds] = useState<Set<string>>(new Set());
+
   // Check if outfit has complete selection (Top, Bottom, Footwear, Accessories, optional Outerwear)
   const slotsPresent = new Set(outfit.items.map((i) => i.slot?.toLowerCase()));
   const hasFullEssentials =
     slotsPresent.has('tops') && slotsPresent.has('bottoms') && slotsPresent.has('footwear') && slotsPresent.has('accessories');
+
+  const curatedItems = outfit.items.filter((i) => i.wardrobeItem.isCuratedSuggestion);
+  const ownedItems = outfit.items.filter((i) => !i.wardrobeItem.isCuratedSuggestion);
+  const hasCuratedItems = curatedItems.length > 0;
+
+  const handleSaveToBucketList = async (wardrobeItem: any) => {
+    try {
+      await addBucketItem({
+        title: wardrobeItem.name,
+        category: wardrobeItem.category,
+        brand: wardrobeItem.brand || 'Curated Boutique',
+        target_price: typeof wardrobeItem.price === 'number' ? wardrobeItem.price : parseFloat(wardrobeItem.price || '0'),
+        currency: '$',
+        image_url: wardrobeItem.imageUrl,
+        product_url: wardrobeItem.productUrl || `https://www.google.com/search?q=${encodeURIComponent(`${wardrobeItem.brand || ''} ${wardrobeItem.name}`)}`,
+        priority: 'high',
+        notes: `Curated shopping piece recommended by FITSYNC AI Stylist for ${outfit.occasion} Look.`,
+        status: 'dreaming',
+      });
+      setSavedItemIds((prev) => new Set(prev).add(wardrobeItem.id));
+      toast.success(`Saved "${wardrobeItem.name}" to your Style Bucket List!`, { icon: '✨' });
+    } catch {
+      toast.error('Could not save item to bucket list');
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
@@ -92,16 +126,22 @@ export default function OutfitDisplay({
               <Badge variant="burgundy" size="sm" className="capitalize">
                 {outfit.style}
               </Badge>
-              {hasFullEssentials && (
+              {hasCuratedItems ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-burgundy-100 dark:bg-burgundy-950/80 text-burgundy-800 dark:text-burgundy-300 border border-burgundy-300 dark:border-burgundy-700/50">
+                  <ShoppingBag className="w-3 h-3 text-burgundy-800 dark:text-burgundy-400" />
+                  Shoppable Hybrid Bundle
+                </span>
+              ) : (
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50">
-                  <CheckCircle2 className="w-3 h-3" />
-                  Head-to-Toe 4+ Pieces
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  100% Wardrobe Owned
                 </span>
               )}
             </div>
             <p className="text-xs text-charcoal-500 dark:text-charcoal-400 mt-0.5">
-              Assembled exclusively from your owned garments (1 Top, 1 Bottom, 1 Footwear, 1 Accessory
-              {slotsPresent.has('outerwear') ? ' + 1 Outerwear Layer' : ''})
+              {hasCuratedItems
+                ? `Hybrid Bundle: ${ownedItems.length} owned garment${ownedItems.length !== 1 ? 's' : ''} + ${curatedItems.length} curated shoppable pick${curatedItems.length !== 1 ? 's' : ''} for the best complete look.`
+                : `Assembled exclusively from your owned garments (1 Top, 1 Bottom, 1 Footwear, 1 Accessory${slotsPresent.has('outerwear') ? ' + 1 Outerwear Layer' : ''})`}
             </p>
           </div>
         </div>
@@ -125,40 +165,115 @@ export default function OutfitDisplay({
         {/* Left: Garment Composite Collage */}
         <div className="lg:col-span-7 bg-white dark:bg-[#1A1A1E] rounded-3xl border border-cream-300 dark:border-[#2A2A33] p-6 shadow-card flex flex-col justify-between transition-colors">
           <div className={`grid gap-4 ${outfit.items.length >= 5 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2'}`}>
-            {outfit.items.map((item) => (
-              <div
-                key={item.id}
-                className="group relative bg-cream-50 dark:bg-[#121214] rounded-2xl border border-cream-300 dark:border-[#2D2D38] overflow-hidden flex flex-col shadow-xs"
-              >
-                <div className="aspect-square w-full bg-cream-100 dark:bg-[#141418] overflow-hidden relative">
-                  <img
-                    src={item.wardrobeItem.imageUrl}
-                    alt={item.wardrobeItem.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      const fallback = getCategoryFallback(item.slot, item.wardrobeItem.name);
-                      if (target.src !== fallback) {
-                        target.src = fallback;
-                      }
-                    }}
-                  />
-                  <div className="absolute top-2.5 left-2.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider bg-white/95 dark:bg-[#18181C]/95 backdrop-blur-xs text-charcoal-900 dark:text-cream-100 px-2 py-0.5 rounded-md shadow-xs border border-cream-200 dark:border-[#2E2E38]">
-                      {getSlotLabel(item.slot)}
-                    </span>
+            {outfit.items.map((item) => {
+              const isCurated = Boolean(item.wardrobeItem.isCuratedSuggestion);
+              const isSaved = savedItemIds.has(item.wardrobeItem.id);
+
+              return (
+                <div
+                  key={item.id}
+                  className={clsx(
+                    'group relative rounded-2xl border overflow-hidden flex flex-col shadow-xs transition-all',
+                    isCurated
+                      ? 'bg-burgundy-50/40 dark:bg-burgundy-950/20 border-burgundy-300 dark:border-burgundy-800/60 ring-1 ring-burgundy-400/30'
+                      : 'bg-cream-50 dark:bg-[#121214] border-cream-300 dark:border-[#2D2D38]'
+                  )}
+                >
+                  <div className="aspect-square w-full bg-cream-100 dark:bg-[#141418] overflow-hidden relative">
+                    <img
+                      src={item.wardrobeItem.imageUrl}
+                      alt={item.wardrobeItem.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        const fallback = getCategoryFallback(item.slot, item.wardrobeItem.name);
+                        if (target.src !== fallback) {
+                          target.src = fallback;
+                        }
+                      }}
+                    />
+
+                    {/* Slot Category Pill */}
+                    <div className="absolute top-2.5 left-2.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-white/95 dark:bg-[#18181C]/95 backdrop-blur-xs text-charcoal-900 dark:text-cream-100 px-2 py-0.5 rounded-md shadow-xs border border-cream-200 dark:border-[#2E2E38]">
+                        {getSlotLabel(item.slot)}
+                      </span>
+                    </div>
+
+                    {/* Shopping Indicator vs Wardrobe Indicator */}
+                    <div className="absolute top-2.5 right-2.5">
+                      {isCurated ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-burgundy-900/90 text-white px-2 py-0.5 rounded-md shadow-xs border border-burgundy-700/60 backdrop-blur-xs animate-pulse">
+                          <ShoppingBag className="w-3 h-3 text-cream-200" />
+                          <span>Curated Pick</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-900/90 text-emerald-100 px-2 py-0.5 rounded-md shadow-xs border border-emerald-700/60 backdrop-blur-xs">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-300" />
+                          <span>In Wardrobe</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Price Tag if shoppable */}
+                    {isCurated && item.wardrobeItem.price ? (
+                      <div className="absolute bottom-2.5 left-2.5 bg-black/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md backdrop-blur-xs border border-white/10">
+                        ${item.wardrobeItem.price} {item.wardrobeItem.brand ? `• ${item.wardrobeItem.brand}` : ''}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Card Details Footer */}
+                  <div className="p-3 bg-white dark:bg-[#1E1E24] border-t border-cream-200 dark:border-[#272730] flex flex-col justify-between flex-1">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <p className="text-xs font-bold text-charcoal-900 dark:text-cream-100 truncate">
+                          {item.wardrobeItem.name}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-charcoal-500 dark:text-charcoal-400 capitalize truncate mt-0.5">
+                        {item.wardrobeItem.brand ? `${item.wardrobeItem.brand} • ` : ''}
+                        {item.wardrobeItem.color} • {item.wardrobeItem.material || item.wardrobeItem.subcategory || item.wardrobeItem.category}
+                      </p>
+                    </div>
+
+                    {/* Interactive E-commerce Shopping Actions for Curated Suggestion */}
+                    {isCurated && (
+                      <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-cream-100 dark:border-[#272730]">
+                        <a
+                          href={
+                            item.wardrobeItem.productUrl ||
+                            `https://www.google.com/search?q=${encodeURIComponent(
+                              `${item.wardrobeItem.brand || ''} ${item.wardrobeItem.name}`
+                            )}`
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-1 py-1 px-2 text-[10px] font-bold bg-burgundy-50 dark:bg-burgundy-950/60 hover:bg-burgundy-100 dark:hover:bg-burgundy-900/80 text-burgundy-900 dark:text-burgundy-300 rounded-lg transition-colors border border-burgundy-200 dark:border-burgundy-800"
+                        >
+                          <ExternalLink className="w-2.5 h-2.5" />
+                          <span>Shop</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleSaveToBucketList(item.wardrobeItem)}
+                          className={clsx(
+                            'inline-flex items-center justify-center gap-1 py-1 px-2 text-[10px] font-bold rounded-lg transition-colors border',
+                            isSaved
+                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                              : 'bg-cream-100 dark:bg-[#25252E] hover:bg-cream-200 dark:hover:bg-[#2F2F3B] text-charcoal-800 dark:text-cream-200 border-cream-300 dark:border-[#383845]'
+                          )}
+                          title="Save this dream item to your Bucket List"
+                        >
+                          <BookmarkPlus className="w-2.5 h-2.5 text-burgundy-800 dark:text-burgundy-400" />
+                          <span>{isSaved ? 'Saved!' : 'Wishlist'}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="p-3 bg-white dark:bg-[#1E1E24] border-t border-cream-200 dark:border-[#272730]">
-                  <p className="text-xs font-semibold text-charcoal-900 dark:text-cream-100 truncate">
-                    {item.wardrobeItem.name}
-                  </p>
-                  <p className="text-[11px] text-charcoal-500 dark:text-charcoal-400 capitalize truncate">
-                    {item.wardrobeItem.color} • {item.wardrobeItem.material || item.wardrobeItem.subcategory || item.wardrobeItem.category}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Feedback & Navigation Actions */}

@@ -30,6 +30,7 @@ export interface RecommendationParams {
   rejectedItemSets?: string[][];
   pinterestAesthetics?: string[];
   pinterestColorPalette?: string[];
+  wardrobeOnly?: boolean;
 }
 
 export interface ScoredOutfit {
@@ -38,6 +39,9 @@ export interface ScoredOutfit {
   reasons: string[];
   stylingTechnique?: string;
   stylingDirective?: string;
+  hasCuratedSuggestions?: boolean;
+  curatedItemsCount?: number;
+  ownedItemsCount?: number;
   outerwearPrediction?: {
     included: boolean;
     reason: string;
@@ -206,6 +210,15 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
     }
   }
 
+  // Prioritize user's owned clothes first in each category
+  for (const cat of Object.keys(byCat)) {
+    byCat[cat].sort((a, b) => {
+      const aCurated = (a.is_curated || a.user_id === 'system-curated') ? 1 : 0;
+      const bCurated = (b.is_curated || b.user_id === 'system-curated') ? 1 : 0;
+      return aCurated - bCurated;
+    });
+  }
+
   // Build rejected keys
   const rejectedKeys = new Set<string>();
   for (const set of rejectedItemSets) {
@@ -311,6 +324,18 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
           let score = 0;
           const reasons: string[] = [];
           let stylingTechnique = 'Head-to-Toe Coordinated';
+
+          const ownedCount = combo.filter((i) => !i.is_curated && i.user_id !== 'system-curated').length;
+          const curatedCount = combo.length - ownedCount;
+
+          // Wardrobe Affinity: reward using owned clothes (+0.10 per owned piece)
+          score += ownedCount * 0.10;
+
+          if (curatedCount > 0) {
+            stylingTechnique = 'Hybrid Curated Bundle (Wardrobe + Shoppable Picks)';
+            const curatedItems = combo.filter((i) => i.is_curated || i.user_id === 'system-curated');
+            reasons.push(`Enhanced with ${curatedItems.length} curated shoppable piece${curatedItems.length > 1 ? 's' : ''} to complete the lookbook.`);
+          }
 
           const topColor = (top.primary_color || '').toLowerCase();
           const bottomColor = bottom ? (bottom.primary_color || '').toLowerCase() : '';
@@ -437,6 +462,9 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
             reasons,
             stylingTechnique,
             stylingDirective,
+            hasCuratedSuggestions: curatedCount > 0,
+            curatedItemsCount: curatedCount,
+            ownedItemsCount: ownedCount,
             outerwearPrediction,
           });
         }

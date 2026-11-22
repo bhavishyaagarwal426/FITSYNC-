@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Sparkles, Dices, ArrowRight, AlertCircle, CheckCircle2, ShieldCheck, Thermometer, Layers } from 'lucide-react';
+import { Sparkles, Dices, ArrowRight, AlertCircle, CheckCircle2, ShieldCheck, Thermometer, Layers, ShoppingBag, Lock } from 'lucide-react';
+import { clsx } from 'clsx';
 import { useOutfitStore } from '@/store/outfitStore';
 import { useWardrobeStore } from '@/store/wardrobeStore';
 import { usePinterestStore } from '@/store/pinterestStore';
@@ -19,6 +20,7 @@ export default function StyleMe() {
   const [season, setSeason] = useState(searchParams.get('season') || 'autumn');
   const [outerwearOption, setOuterwearOption] = useState<'auto' | 'yes' | 'no'>('auto');
   const [colorPreference, setColorPreference] = useState<string | undefined>(searchParams.get('color') || undefined);
+  const [wardrobeOnly, setWardrobeOnly] = useState<boolean>(searchParams.get('wardrobeOnly') === 'true');
   const [error, setError] = useState<string | null>(null);
 
   const fromPinterest = searchParams.get('fromPinterest') === 'true';
@@ -37,6 +39,7 @@ export default function StyleMe() {
     if (searchParams.get('occasion')) setOccasion(searchParams.get('occasion')!);
     if (searchParams.get('color')) setColorPreference(searchParams.get('color')!);
     if (searchParams.get('season')) setSeason(searchParams.get('season')!);
+    if (searchParams.get('wardrobeOnly')) setWardrobeOnly(searchParams.get('wardrobeOnly') === 'true');
   }, [searchParams]);
 
   const handleGenerate = async () => {
@@ -49,6 +52,7 @@ export default function StyleMe() {
         season,
         outerwearOption,
         colorPreference,
+        wardrobeOnly,
       });
       navigate(`/outfit/${outfit.id}`);
     } catch (err: any) {
@@ -235,7 +239,93 @@ export default function StyleMe() {
             </div>
           </div>
 
-          {/* 6. Color Preference */}
+          {/* 6. Curated Shopping Suggestions vs Closet Only Toggle */}
+          <div className="bg-cream-50/80 dark:bg-[#151518] p-5 rounded-3xl border border-cream-300 dark:border-[#2D2D38] space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-charcoal-800 dark:text-cream-100">
+                    6. Wardrobe Sourcing Mode
+                  </span>
+                  <span
+                    className={clsx(
+                      'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                      wardrobeOnly
+                        ? 'bg-charcoal-100 dark:bg-charcoal-800 text-charcoal-700 dark:text-charcoal-300 border-charcoal-300 dark:border-charcoal-700'
+                        : 'bg-burgundy-100 dark:bg-burgundy-950/80 text-burgundy-800 dark:text-burgundy-300 border-burgundy-300 dark:border-burgundy-800'
+                    )}
+                  >
+                    {wardrobeOnly ? '🔒 Closet Only Mode' : '🛍️ Curated Suggestions (Default)'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-charcoal-500 dark:text-charcoal-400 mt-1">
+                  Choose whether the AI should suggest complementary shoppable pieces to make the costume look its absolute best, or show only clothes in your wardrobe.
+                </p>
+              </div>
+
+              {/* Direct Toggle */}
+              <button
+                type="button"
+                onClick={() => setWardrobeOnly(!wardrobeOnly)}
+                className={clsx(
+                  'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none shadow-xs',
+                  wardrobeOnly ? 'bg-charcoal-400 dark:bg-charcoal-600' : 'bg-burgundy-800 dark:bg-burgundy-600'
+                )}
+                role="switch"
+                aria-checked={!wardrobeOnly}
+                title="Toggle Curated Suggestions"
+              >
+                <span
+                  className={clsx(
+                    'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out',
+                    wardrobeOnly ? 'translate-x-0' : 'translate-x-5'
+                  )}
+                />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setWardrobeOnly(false)}
+                className={clsx(
+                  'p-3.5 rounded-2xl border text-left transition-all',
+                  !wardrobeOnly
+                    ? 'border-burgundy-800 bg-white dark:bg-[#1E1E24] ring-2 ring-burgundy-800 shadow-xs'
+                    : 'border-cream-300 dark:border-[#2D2D38] bg-transparent opacity-70 hover:opacity-100'
+                )}
+              >
+                <div className="flex items-center gap-1.5 text-xs font-bold text-burgundy-900 dark:text-cream-100">
+                  <ShoppingBag className="w-3.5 h-3.5 text-burgundy-800 dark:text-burgundy-400" />
+                  <span>Curated Suggestions (Default)</span>
+                </div>
+                <p className="text-[11px] text-charcoal-500 dark:text-charcoal-400 mt-1 leading-relaxed">
+                  Pairs your wardrobe with curated shoppable suggestion pieces (with shopping badges) to make every costume look its absolute best.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setWardrobeOnly(true)}
+                className={clsx(
+                  'p-3.5 rounded-2xl border text-left transition-all',
+                  wardrobeOnly
+                    ? 'border-burgundy-800 bg-white dark:bg-[#1E1E24] ring-2 ring-burgundy-800 shadow-xs'
+                    : 'border-cream-300 dark:border-[#2D2D38] bg-transparent opacity-70 hover:opacity-100'
+                )}
+              >
+                <div className="flex items-center gap-1.5 text-xs font-bold text-charcoal-900 dark:text-cream-100">
+                  <Lock className="w-3.5 h-3.5 text-charcoal-700 dark:text-charcoal-300" />
+                  <span>Only Clothes in My Wardrobe</span>
+                </div>
+                <p className="text-[11px] text-charcoal-500 dark:text-charcoal-400 mt-1 leading-relaxed">
+                  Strictly show and assemble outfits using only garments currently uploaded in your personal digital closet.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* 7. Color Preference */}
           <ColorSelector value={colorPreference} onChange={setColorPreference} />
 
           {/* Guaranteed Category Composition Callout */}
@@ -247,7 +337,8 @@ export default function StyleMe() {
               <strong>1 Accessory</strong>
               {outerwearOption === 'no' || (outerwearOption === 'auto' && !isOuterwearPredicted)
                 ? ' (Outerwear excluded for warm/mild weather).'
-                : ' + 1 Outerwear Layer.'}
+                : ' + 1 Outerwear Layer.'}{' '}
+              {wardrobeOnly ? 'Sourced strictly from your closet.' : 'Enhanced with shoppable curated suggestions if needed.'}
             </span>
           </div>
 

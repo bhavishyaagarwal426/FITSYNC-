@@ -57,6 +57,9 @@ export interface WardrobeItem {
   pattern?: string;
   material?: string;
   brand?: string;
+  price?: number;
+  productUrl?: string;
+  isCuratedSuggestion?: boolean;
   season?: string;
   style?: string;
   formality: string;
@@ -174,6 +177,7 @@ export interface GenerateOutfitRequest {
   colorPreference?: string;
   excludeItems?: string[];
   formality?: string;
+  wardrobeOnly?: boolean;
 }
 
 // ─── Community ───────────────────────────────────────────────────────────────
