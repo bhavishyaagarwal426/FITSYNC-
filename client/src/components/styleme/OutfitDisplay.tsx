@@ -133,10 +133,17 @@ export default function OutfitDisplay({
                 {outfit.style}
               </Badge>
               {hasCuratedItems ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-burgundy-100 dark:bg-burgundy-950/80 text-burgundy-800 dark:text-burgundy-300 border border-burgundy-300 dark:border-burgundy-700/50">
-                  <ShoppingBag className="w-3 h-3 text-burgundy-800 dark:text-burgundy-400" />
-                  Shoppable Hybrid Bundle
-                </span>
+                ownedItems.length === 0 ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-burgundy-100 dark:bg-burgundy-950/80 text-burgundy-800 dark:text-burgundy-300 border border-burgundy-300 dark:border-burgundy-700/50">
+                    <Sparkles className="w-3 h-3 text-burgundy-800 dark:text-burgundy-400" />
+                    Curated Boutique Lookbook
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-burgundy-100 dark:bg-burgundy-950/80 text-burgundy-800 dark:text-burgundy-300 border border-burgundy-300 dark:border-burgundy-700/50">
+                    <ShoppingBag className="w-3 h-3 text-burgundy-800 dark:text-burgundy-400" />
+                    Shoppable Hybrid Bundle
+                  </span>
+                )
               ) : (
                 <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50">
                   <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
@@ -146,7 +153,9 @@ export default function OutfitDisplay({
             </div>
             <p className="text-xs text-charcoal-500 dark:text-charcoal-400 mt-0.5">
               {hasCuratedItems
-                ? `Hybrid Bundle: ${ownedItems.length} owned garment${ownedItems.length !== 1 ? 's' : ''} + ${curatedItems.length} curated shoppable pick${curatedItems.length !== 1 ? 's' : ''} for the best complete look.`
+                ? (ownedItems.length === 0
+                   ? `Editorial Boutique Lookbook: Complete stylist ensemble featuring ${curatedItems.length} curated designer pieces.`
+                   : `Hybrid Bundle: ${ownedItems.length} owned garment${ownedItems.length !== 1 ? 's' : ''} + ${curatedItems.length} curated shoppable pick${curatedItems.length !== 1 ? 's' : ''} for the best complete look.`)
                 : `Assembled exclusively from your owned garments (1 Top, 1 Bottom, 1 Footwear, 1 Accessory${slotsPresent.has('outerwear') ? ' + 1 Outerwear Layer' : ''})`}
             </p>
           </div>

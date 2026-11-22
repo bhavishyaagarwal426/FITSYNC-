@@ -70,6 +70,47 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* New User Welcome & Instant AI Stylist Callout */}
+        {totalItems === 0 && (
+          <div className="bg-gradient-to-r from-burgundy-900 to-burgundy-800 text-white p-6 sm:p-8 rounded-3xl shadow-card border border-burgundy-700 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-cream-100 text-xs font-semibold">
+                  <Sparkles className="w-3.5 h-3.5 text-cream-200" />
+                  <span>Instant AI Outfit Suggestions Ready</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                  You don't need to upload clothes to get amazing outfit ideas!
+                </h2>
+                <p className="text-xs sm:text-sm text-cream-200 leading-relaxed">
+                  FITSYNC is designed first and foremost to give you high-fashion styling inspiration. Our AI Stylist will build complete, realistic head-to-toe combinations (1 Top + 1 Bottom + 1 Footwear + 1 Accessory + outerwear) drawing from Pinterest aesthetics and curated designer pieces.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto shrink-0">
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={handleSurpriseMe}
+                  isLoading={isSurprising}
+                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 font-bold"
+                  leftIcon={<Dices className="w-4 h-4 text-cream-200" />}
+                >
+                  Quick Surprise Look
+                </Button>
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => navigate('/style-me')}
+                  className="bg-white text-burgundy-950 hover:bg-cream-100 font-extrabold shadow-md"
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Style My Lookbook
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 1. Wardrobe Overview */}
         <WardrobeOverview items={items} totalItems={totalItems} />
 

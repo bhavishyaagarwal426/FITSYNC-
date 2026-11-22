@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles, Check } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import AuthLayout from '@/components/layout/AuthLayout';
 import Input from '@/components/ui/Input';
@@ -10,8 +11,9 @@ export default function Register() {
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [gender, setGender] = useState<'men' | 'women' | 'unisex'>('men');
+  const [ageConfirmed, setAgeConfirmed] = useState(true);
+  const [termsAccepted, setTermsAccepted] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { register, isLoading } = useAuthStore();
@@ -22,26 +24,38 @@ export default function Register() {
     setError(null);
 
     if (!termsAccepted) {
-      setError('You must review and accept the Terms and Privacy Policy to continue.');
+      setError('Please accept the Terms of Service and Privacy Policy to continue.');
       return;
     }
     if (!ageConfirmed) {
       setError('Please confirm that you meet the age requirement (16+) to use this service.');
       return;
     }
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
 
     try {
-      await register({ email, password, displayName });
-      navigate('/onboarding');
+      await register({
+        email,
+        password,
+        displayName,
+        gender,
+        ageConfirmed: true,
+        onboardingCompleted: true,
+      });
+      toast.success('Account created! Welcome to FITSYNC AI Stylist ✨', { icon: '✨' });
+      navigate('/dashboard');
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Registration failed. Please try again.');
+      setError(err?.response?.data?.error || 'Registration failed. Please check your details and try again.');
     }
   };
 
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="Start exploring new combinations from your existing wardrobe"
+      subtitle="Experience personalized AI outfit recommendations tailored to you"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -81,8 +95,42 @@ export default function Register() {
           placeholder="••••••••"
         />
 
+        {/* Fashion Profile / Gender Choice */}
+        <div className="space-y-2 pt-1">
+          <label className="block text-xs font-bold uppercase tracking-wider text-charcoal-700">
+            Styling Profile & Silhouettes
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 'men', label: "Men's Fashion", icon: '👔', desc: 'Blazers, oxfords, chinos, boots' },
+              { id: 'women', label: "Women's Fashion", icon: '🌸', desc: 'Dresses, skirts, chic heels' },
+              { id: 'unisex', label: 'Unisex / Fluid', icon: '✨', desc: 'Minimalist basics, knits' },
+            ].map((opt) => {
+              const isSelected = gender === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setGender(opt.id as any)}
+                  className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center ${
+                    isSelected
+                      ? 'border-burgundy-800 bg-burgundy-50 ring-2 ring-burgundy-800 text-burgundy-900 shadow-xs'
+                      : 'border-cream-300 bg-cream-50/50 text-charcoal-700 hover:border-cream-400'
+                  }`}
+                >
+                  <span className="text-xl mb-1">{opt.icon}</span>
+                  <span className="text-xs font-bold leading-tight block">{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-charcoal-500">
+            AI Stylist will prioritize cuts and silhouettes for this profile. You can change this anytime.
+          </p>
+        </div>
+
         {/* Age & Legal Checkboxes */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-2 border-t border-cream-200">
           <label className="flex items-start gap-2.5 text-xs text-charcoal-700 cursor-pointer">
             <input
               type="checkbox"
@@ -113,11 +161,11 @@ export default function Register() {
           type="submit"
           variant="primary"
           size="md"
-          className="w-full mt-3"
+          className="w-full mt-3 font-bold"
           isLoading={isLoading}
           rightIcon={<ArrowRight className="w-4 h-4" />}
         >
-          Create Account & Personalize
+          Create Account & Start Styling
         </Button>
 
         <div className="text-center text-xs text-charcoal-600 pt-2 border-t border-cream-200">

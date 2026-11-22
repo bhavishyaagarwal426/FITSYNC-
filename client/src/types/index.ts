@@ -42,6 +42,9 @@ export interface RegisterCredentials {
   email: string;
   password: string;
   displayName: string;
+  ageConfirmed?: boolean;
+  gender?: 'men' | 'women' | 'unisex' | 'all';
+  onboardingCompleted?: boolean;
 }
 
 // ─── Wardrobe ────────────────────────────────────────────────────────────────

@@ -152,6 +152,18 @@ export default function StyleMe() {
           </div>
         )}
 
+        {totalItems === 0 && (
+          <div className="flex items-center gap-3 p-4 bg-burgundy-50/70 dark:bg-burgundy-950/40 text-burgundy-900 dark:text-cream-100 rounded-2xl border border-burgundy-200 dark:border-burgundy-800 text-xs shadow-xs">
+            <ShoppingBag className="w-5 h-5 text-burgundy-800 dark:text-burgundy-400 shrink-0" />
+            <div>
+              <span className="font-bold block">Empty Closet? No Problem!</span>
+              <span className="text-charcoal-600 dark:text-charcoal-400 text-[11px]">
+                FITSYNC AI Stylist automatically pulls from our curated boutique collection to generate complete, realistic looks. You can save pieces to your Style Bucket List with 1 click.
+              </span>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="flex items-center gap-2.5 p-4 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 text-xs rounded-2xl border border-red-200 dark:border-red-900/50">
             <AlertCircle className="w-4 h-4 shrink-0" />

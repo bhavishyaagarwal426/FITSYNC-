@@ -271,13 +271,20 @@ async function executeOutfitGeneration(
     .map((i: any) => `${i.brand || ''} ${i.custom_name || i.subcategory || i.category}`.trim());
 
   if (hasCurated) {
-    const ownedPart = ownedNames.length > 0 ? `Owned clothes [${ownedNames.join(', ')}]` : '';
-    const curatedPart = `Curated Suggestions [${curatedNames.join(', ')}]`;
-    const connector = ownedPart ? ` paired with ` : ``;
-    if (pinterestUsername) {
-      explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & @${pinterestUsername} moodboard: ${ownedPart}${connector}${curatedPart}.${outerwearNote} ${reasonText}${directiveText}`;
+    if (ownedNames.length === 0) {
+      if (pinterestUsername) {
+        explanation = `[Editorial Stylist Lookbook] Researched from trending Pinterest aesthetics & @${pinterestUsername} moodboard: Curated Designer Proposal featuring ${curatedNames.join(', ')}.${outerwearNote} ${reasonText}${directiveText}`;
+      } else {
+        explanation = `[Editorial Stylist Lookbook] Curated Designer Proposal crafted by FITSYNC AI Stylist: ${curatedNames.join(', ')}.${outerwearNote} ${reasonText}${directiveText}`;
+      }
     } else {
-      explanation = `[${stylingNote}] ${ownedPart}${connector}${curatedPart}.${outerwearNote} ${reasonText}${directiveText}`;
+      const ownedPart = `Owned clothes [${ownedNames.join(', ')}]`;
+      const curatedPart = `Curated Suggestions [${curatedNames.join(', ')}]`;
+      if (pinterestUsername) {
+        explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & @${pinterestUsername} moodboard: ${ownedPart} paired with ${curatedPart}.${outerwearNote} ${reasonText}${directiveText}`;
+      } else {
+        explanation = `[${stylingNote}] ${ownedPart} paired with ${curatedPart}.${outerwearNote} ${reasonText}${directiveText}`;
+      }
     }
   } else {
     if (pinterestUsername) {

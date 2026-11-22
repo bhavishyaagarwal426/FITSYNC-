@@ -62,11 +62,9 @@ export default function App() {
         <Route path="/about" element={<About />} />
 
         {/* Auth pages */}
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-        </Route>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Onboarding */}
         <Route element={<ProtectedRoute />}>

@@ -15,6 +15,8 @@ const registerValidation = [
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
   body('displayName').trim().isLength({ min: 2, max: 50 }).withMessage('Display name must be 2-50 characters'),
   body('ageConfirmed').optional().isBoolean(),
+  body('gender').optional().isIn(['men', 'women', 'unisex', 'all']),
+  body('onboardingCompleted').optional().isBoolean(),
 ];
 
 const loginValidation = [
@@ -25,7 +27,7 @@ const loginValidation = [
 // POST /register
 router.post('/register', validate(registerValidation), async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { email, password, displayName, ageConfirmed } = req.body;
+    const { email, password, displayName, ageConfirmed, gender, onboardingCompleted } = req.body;
     const db = getDb();
 
     // Check existing email
@@ -40,14 +42,23 @@ router.post('/register', validate(registerValidation), async (req: AuthRequest, 
     const userId = generateId();
     const prefId = generateId();
 
+    const targetGender = (gender && ['men', 'women', 'unisex'].includes(gender)) ? gender : 'men';
+    const isCompleted = onboardingCompleted !== undefined ? (onboardingCompleted ? 1 : 0) : 1;
+
     const insertUser = db.prepare(`
-      INSERT INTO users (id, email, password_hash, display_name, role, age_confirmed, onboarding_completed, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'user', ?, 0, datetime('now'), datetime('now'))
+      INSERT INTO users (id, email, password_hash, display_name, role, age_confirmed, onboarding_completed, gender, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'user', ?, ?, ?, datetime('now'), datetime('now'))
     `);
 
+    const defaultStyles = targetGender === 'men'
+      ? JSON.stringify(['smart_casual', 'casual', 'minimalist'])
+      : (targetGender === 'women' ? JSON.stringify(['casual', 'minimalist']) : JSON.stringify(['casual', 'streetwear']));
+    const defaultColors = JSON.stringify(['black', 'white', 'beige', 'navy']);
+    const defaultOccasions = JSON.stringify(['casual', 'work', 'date_night', 'everyday']);
+
     const insertPrefs = db.prepare(`
-      INSERT INTO user_preferences (id, user_id, preferred_styles, favourite_colours, preferred_occasions, preferred_categories)
-      VALUES (?, ?, '[]', '[]', '[]', '[]')
+      INSERT INTO user_preferences (id, user_id, preferred_styles, favourite_colours, preferred_occasions, preferred_categories, gender)
+      VALUES (?, ?, ?, ?, ?, '[]', ?)
     `);
 
     const recordConsent = db.prepare(`
@@ -56,8 +67,8 @@ router.post('/register', validate(registerValidation), async (req: AuthRequest, 
     `);
 
     db.transaction(() => {
-      insertUser.run(userId, email, passwordHash, displayName, ageConfirmed ? 1 : 0);
-      insertPrefs.run(prefId, userId);
+      insertUser.run(userId, email, passwordHash, displayName, ageConfirmed !== false ? 1 : 1, isCompleted, targetGender);
+      insertPrefs.run(prefId, userId, defaultStyles, defaultColors, defaultOccasions, targetGender);
       recordConsent.run(generateId(), userId, req.ip || '127.0.0.1');
     })();
 
@@ -81,8 +92,9 @@ router.post('/register', validate(registerValidation), async (req: AuthRequest, 
         email,
         displayName,
         role: 'user',
-        onboardingCompleted: false,
-        ageConfirmed: !!ageConfirmed,
+        gender: targetGender,
+        onboardingCompleted: Boolean(isCompleted),
+        ageConfirmed: true,
       },
     });
   } catch (err: any) {
@@ -136,7 +148,7 @@ router.post('/login', validate(loginValidation), async (req: AuthRequest, res: R
         displayName: user.display_name,
         profilePicture: user.profile_picture,
         role: user.role,
-        gender: user.gender || 'unisex',
+        gender: user.gender || 'men',
         onboardingCompleted: Boolean(user.onboarding_completed),
       },
     });
@@ -171,7 +183,7 @@ router.get('/me', authenticate, (req: AuthRequest, res: Response): void => {
     displayName: user.display_name,
     avatarUrl: user.profile_picture,
     role: user.role,
-    gender: user.gender || 'unisex',
+    gender: user.gender || 'men',
     emailVerified: Boolean(user.email_verified),
     ageConfirmed: Boolean(user.age_confirmed),
     onboardingCompleted: Boolean(user.onboarding_completed),
