@@ -118,7 +118,7 @@ async function executeOutfitGeneration(
   const db = getDb();
 
   const userRow = db.prepare('SELECT gender FROM users WHERE id = ?').get(userId) as any;
-  const targetGender = (gender || userRow?.gender || 'unisex').toLowerCase() as 'men' | 'women' | 'unisex' | 'all';
+  const targetGender = (gender || userRow?.gender || 'men').toLowerCase() as 'men' | 'women' | 'unisex' | 'all';
 
   // Retrieve user's owned wardrobe items
   const userItems = db.prepare(`

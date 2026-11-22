@@ -47,13 +47,13 @@ async function seedInitialData() {
 
     // Demo User
     db.prepare(`
-      INSERT INTO users (id, email, password_hash, display_name, role, onboarding_completed, age_confirmed)
-      VALUES (?, 'demo@fitsync.com', ?, 'Alex Morgan', 'user', 1, 1)
+      INSERT INTO users (id, email, password_hash, display_name, role, onboarding_completed, age_confirmed, gender)
+      VALUES (?, 'demo@fitsync.com', ?, 'Alex Morgan', 'user', 1, 1, 'men')
     `).run(demoUserId, userPass);
 
     db.prepare(`
-      INSERT INTO user_preferences (id, user_id, preferred_styles, favourite_colours, preferred_occasions, preferred_categories)
-      VALUES (?, ?, '["casual","minimalist","smart_casual"]', '["black","beige","white","navy"]', '["casual","work","everyday"]', '["tops","bottoms","footwear"]')
+      INSERT INTO user_preferences (id, user_id, preferred_styles, favourite_colours, preferred_occasions, preferred_categories, gender)
+      VALUES (?, ?, '["casual","minimalist","smart_casual"]', '["black","beige","white","navy"]', '["casual","work","everyday"]', '["tops","bottoms","footwear"]', 'men')
     `).run(generateId(), demoUserId);
 
     // Admin User

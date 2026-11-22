@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '@/store/authStore';
 import { useOutfitStore } from '@/store/outfitStore';
 import AppLayout from '@/components/layout/AppLayout';
 import OutfitDisplay from '@/components/styleme/OutfitDisplay';
 
 export default function OutfitView() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuthStore();
   const { currentOutfit, fetchOutfitById, giveFeedback, generateOutfit, saveOutfit, markAsWorn } = useOutfitStore();
   const [isLoadingAnother, setIsLoadingAnother] = useState(false);
   const [triedOutfitIds, setTriedOutfitIds] = useState<string[]>([]);
@@ -46,6 +48,7 @@ export default function OutfitView() {
         occasion: currentOutfit.occasion,
         style: currentOutfit.style,
         weather: currentOutfit.weather,
+        gender: (user?.gender as any) || 'men',
         excludeOutfitIds: allExcluded,
         differentFromOutfitId: currentOutfit.id,
       });

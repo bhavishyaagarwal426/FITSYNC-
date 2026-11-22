@@ -178,7 +178,7 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
     style = 'casual',
     weather = 'moderate',
     season = '',
-    gender = 'unisex',
+    gender = 'men',
     outerwearOption = 'auto',
     colorPreference,
     excludeItems = [],
@@ -188,7 +188,7 @@ export function recommendOutfits(params: RecommendationParams): ScoredOutfit[] {
     pinterestColorPalette = [],
   } = params;
 
-  const targetGender = (gender || 'unisex').toLowerCase();
+  const targetGender = (gender || 'men').toLowerCase();
 
   // Filter available, non-excluded, and gender-aligned items
   const available = items.filter((i) => {

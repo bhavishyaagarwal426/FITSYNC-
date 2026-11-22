@@ -18,7 +18,7 @@ export default function StyleMe() {
   const { user } = useAuthStore();
   const [occasion, setOccasion] = useState(searchParams.get('occasion') || 'casual');
   const [gender, setGender] = useState<'men' | 'women' | 'unisex' | 'all'>(
-    (searchParams.get('gender') as any) || (user?.gender as any) || 'unisex'
+    (searchParams.get('gender') as any) || (user?.gender as any) || 'men'
   );
   const [style, setStyle] = useState(searchParams.get('style') || 'casual');
   const [weather, setWeather] = useState('moderate');
@@ -38,6 +38,13 @@ export default function StyleMe() {
   useEffect(() => {
     fetchStatus();
   }, [fetchStatus]);
+
+  // Keep gender aligned with user account styling profile if not overridden by URL query
+  useEffect(() => {
+    if (user?.gender && !searchParams.get('gender')) {
+      setGender(user.gender as any);
+    }
+  }, [user?.gender]);
 
   useEffect(() => {
     if (searchParams.get('style')) setStyle(searchParams.get('style')!);

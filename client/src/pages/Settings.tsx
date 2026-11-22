@@ -13,10 +13,16 @@ export default function Settings() {
   const { user, updateProfile } = useAuthStore();
   const { theme, setTheme } = useUIStore();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
-  const [gender, setGender] = useState<'men' | 'women' | 'unisex'>((user?.gender as any) || 'unisex');
+  const [gender, setGender] = useState<'men' | 'women' | 'unisex'>((user?.gender as any) || 'men');
   const [preferredStyles, setPreferredStyles] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.gender) {
+      setGender(user.gender as any);
+    }
+  }, [user?.gender]);
 
   useEffect(() => {
     api.get('/preferences').then((res: any) => {

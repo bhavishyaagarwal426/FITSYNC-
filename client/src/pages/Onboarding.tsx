@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight, ArrowLeft, Check, Compass, Layers, User } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -60,14 +60,19 @@ const ONBOARDING_COLORS = [
 ];
 
 export default function Onboarding() {
+  const { user, updateProfile } = useAuthStore();
   const [step, setStep] = useState(1);
-  const [selectedGender, setSelectedGender] = useState<'men' | 'women' | 'unisex'>('unisex');
+  const [selectedGender, setSelectedGender] = useState<'men' | 'women' | 'unisex'>((user?.gender as any) || 'men');
   const [selectedStyles, setSelectedStyles] = useState<string[]>(['casual', 'minimalist']);
   const [selectedColors, setSelectedColors] = useState<string[]>(['black', 'beige']);
   const [isSaving, setIsSaving] = useState(false);
-
-  const { user, updateProfile } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user?.gender) {
+      setSelectedGender(user.gender as any);
+    }
+  }, [user?.gender]);
 
   const toggleStyle = (id: string) => {
     setSelectedStyles((prev) =>
