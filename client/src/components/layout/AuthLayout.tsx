@@ -13,9 +13,11 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
       {/* Brand Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <Link to="/" className="inline-flex items-center gap-2.5 mb-3 group">
-          <div className="w-10 h-10 rounded-xl bg-burgundy-800 flex items-center justify-center text-white font-bold text-xl shadow-sm group-hover:bg-burgundy-900 transition-colors">
-            F
-          </div>
+          <img
+            src="/logo.png"
+            alt="FITSYNC"
+            className="w-12 h-12 rounded-full object-cover shadow-sm border border-cream-300"
+          />
           <span className="font-extrabold tracking-wider text-charcoal-900 text-2xl">
             FIT<span className="text-burgundy-800">SYNC</span>
           </span>

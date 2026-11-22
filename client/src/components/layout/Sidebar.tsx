@@ -52,9 +52,11 @@ export default function Sidebar() {
       <div className="p-6 pb-2">
         {/* FITSYNC Brand Logo */}
         <div className="flex items-center gap-2.5 mb-8">
-          <div className="w-9 h-9 rounded-xl bg-burgundy-800 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            F
-          </div>
+          <img
+            src="/logo.png"
+            alt="FITSYNC"
+            className="w-10 h-10 rounded-full object-cover border border-cream-300 shadow-xs"
+          />
           <div className="flex flex-col">
             <span className="font-extrabold tracking-wider text-charcoal-900 text-lg leading-tight">
               FIT<span className="text-burgundy-800">SYNC</span>

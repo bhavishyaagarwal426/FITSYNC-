@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 import { getDb } from '../db/database.js';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { generateId, sanitizeFilename, isValidImageType } from '../utils/helpers.js';
-import { getAIProvider } from '../services/ai.js';
+import { getAIProvider, SmartLocalVisionProvider } from '../services/ai.js';
 
 const router = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -89,27 +89,17 @@ router.post('/upload', authenticate, upload.single('image'), async (req: AuthReq
       console.warn('Sharp thumbnail generation failed, using original:', sharpErr);
     }
 
-    // AI Analysis
+    // AI Analysis using Vision & Heuristic engine
     const aiProvider = getAIProvider();
+    const userHint = (req.body?.category as string) || '';
+    const originalFilename = req.file.originalname || '';
     let analysis;
     try {
-      analysis = await aiProvider.analyzeClothing(originalPath);
+      analysis = await aiProvider.analyzeClothing(originalPath, originalFilename, userHint);
     } catch (aiErr) {
-      console.warn('AI analysis failed, fallback default attributes:', aiErr);
-      analysis = {
-        category: 'tops',
-        subcategory: 'T-shirt',
-        primaryColor: 'black',
-        secondaryColors: [],
-        pattern: 'solid',
-        texture: 'smooth',
-        material: 'cotton',
-        style: 'casual',
-        formality: 'casual',
-        season: 'all',
-        useCases: ['everyday', 'casual'],
-        confidence: 0.85,
-      };
+      console.warn('Primary AI analysis failed, falling back to local vision engine:', aiErr);
+      const fallbackEngine = new SmartLocalVisionProvider();
+      analysis = await fallbackEngine.analyzeClothing(originalPath, originalFilename, userHint);
     }
 
     const id = generateId();

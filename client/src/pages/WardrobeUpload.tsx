@@ -8,13 +8,13 @@ import UploadDropzone from '@/components/wardrobe/UploadDropzone';
 import type { WardrobeItem } from '@/types';
 
 export default function WardrobeUpload() {
-  const { uploadItem } = useWardrobeStore();
+  const { uploadItem, updateItem } = useWardrobeStore();
   const [uploadedItems, setUploadedItems] = useState<WardrobeItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleUploadFiles = async (files: File[]) => {
+  const handleUploadFiles = async (files: File[], categoryHint?: string) => {
     setIsProcessing(true);
     setError(null);
     const results: WardrobeItem[] = [];
@@ -23,6 +23,9 @@ export default function WardrobeUpload() {
       for (const file of files) {
         const formData = new FormData();
         formData.append('image', file);
+        if (categoryHint) {
+          formData.append('category', categoryHint);
+        }
         const item = await uploadItem(formData);
         results.push(item);
       }
@@ -83,10 +86,27 @@ export default function WardrobeUpload() {
                   </div>
                   <div>
                     <h4 className="text-xs font-semibold text-charcoal-900 truncate">{item.name}</h4>
-                    <p className="text-[11px] text-charcoal-500 capitalize">
-                      {item.category} • {item.color}
-                    </p>
-                    <span className="inline-block text-[10px] bg-green-100 text-green-800 font-bold px-1.5 py-0.5 rounded mt-1">
+                    <div className="mt-1 flex items-center justify-between gap-1">
+                      <select
+                        value={item.category}
+                        onChange={async (e) => {
+                          const newCat = e.target.value;
+                          await updateItem(item.id, { category: newCat });
+                          setUploadedItems(uploadedItems.map((i) => (i.id === item.id ? { ...i, category: newCat } : i)));
+                        }}
+                        className="text-[11px] bg-white border border-cream-300 rounded-md px-1.5 py-0.5 text-charcoal-800 focus:outline-none focus:ring-1 focus:ring-burgundy-800 capitalize font-medium"
+                      >
+                        <option value="accessories">Accessories</option>
+                        <option value="footwear">Footwear</option>
+                        <option value="tops">Tops</option>
+                        <option value="bottoms">Bottoms</option>
+                        <option value="outerwear">Outerwear</option>
+                        <option value="dresses">Dresses</option>
+                        <option value="traditional">Traditional</option>
+                      </select>
+                      <span className="text-[10px] text-charcoal-500 capitalize">{item.color}</span>
+                    </div>
+                    <span className="inline-block text-[10px] bg-green-100 text-green-800 font-bold px-1.5 py-0.5 rounded mt-1.5">
                       AI Verified
                     </span>
                   </div>

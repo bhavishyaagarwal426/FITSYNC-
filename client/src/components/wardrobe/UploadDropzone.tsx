@@ -5,7 +5,7 @@ import { clsx } from 'clsx';
 import Button from '@/components/ui/Button';
 
 interface UploadDropzoneProps {
-  onUpload: (files: File[]) => Promise<void>;
+  onUpload: (files: File[], categoryHint?: string) => Promise<void>;
   isLoading?: boolean;
 }
 
@@ -16,6 +16,7 @@ interface FilePreview {
 
 export default function UploadDropzone({ onUpload, isLoading = false }: UploadDropzoneProps) {
   const [previews, setPreviews] = useState<FilePreview[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('auto');
   const [error, setError] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
@@ -43,7 +44,10 @@ export default function UploadDropzone({ onUpload, isLoading = false }: UploadDr
   const handleUploadSubmit = async () => {
     if (previews.length === 0) return;
     try {
-      await onUpload(previews.map((p) => p.file));
+      await onUpload(
+        previews.map((p) => p.file),
+        selectedCategory !== 'auto' ? selectedCategory : undefined
+      );
       // Cleanup preview URLs
       previews.forEach((p) => URL.revokeObjectURL(p.previewUrl));
       setPreviews([]);
@@ -64,7 +68,39 @@ export default function UploadDropzone({ onUpload, isLoading = false }: UploadDr
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Category Hint Selector */}
+      <div className="bg-white p-4 rounded-2xl border border-cream-300 space-y-2 shadow-xs">
+        <label className="text-xs font-semibold text-charcoal-700 block">
+          Garment Category Hint (Optional — helps AI classify accessories like watches with 100% accuracy):
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { id: 'auto', label: '✨ Auto-Detect (AI)' },
+            { id: 'accessories', label: '⌚ Accessories (Watch, Belt, Bag)' },
+            { id: 'footwear', label: '👟 Footwear' },
+            { id: 'tops', label: '👔 Tops' },
+            { id: 'bottoms', label: '👖 Bottoms' },
+            { id: 'outerwear', label: '🧥 Outerwear' },
+            { id: 'dresses', label: '👗 Dresses' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={clsx(
+                'px-3 py-1.5 rounded-xl text-xs font-medium transition-all border',
+                selectedCategory === cat.id
+                  ? 'bg-burgundy-800 text-white border-burgundy-800 shadow-xs'
+                  : 'bg-cream-50 text-charcoal-700 border-cream-300 hover:border-burgundy-700'
+              )}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Drop area */}
       <div
         {...getRootProps()}
