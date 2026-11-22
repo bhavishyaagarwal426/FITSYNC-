@@ -237,7 +237,22 @@ export interface StyleInspiration {
   isSaved: boolean;
   source?: string;
   sourceUrl?: string;
+  isPinterest?: boolean;
+  boardName?: string;
+  colors?: string[];
   createdAt: string;
+}
+
+export interface PinterestConnection {
+  connected: boolean;
+  username?: string;
+  profileUrl?: string;
+  avatarUrl?: string;
+  boardsCount?: number;
+  pinsCount?: number;
+  aestheticTags?: string[];
+  colorPalette?: string[];
+  lastSyncedAt?: string;
 }
 
 // ─── Notifications ───────────────────────────────────────────────────────────

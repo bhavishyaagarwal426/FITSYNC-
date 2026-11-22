@@ -23,6 +23,7 @@ import exploreRoutes from './routes/explore.js';
 import notificationsRoutes from './routes/notifications.js';
 import privacyRoutes from './routes/privacy.js';
 import adminRoutes from './routes/admin.js';
+import pinterestRoutes from './routes/pinterest.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -167,6 +168,7 @@ app.use('/api/explore', exploreRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/privacy', privacyRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/pinterest', pinterestRoutes);
 
 // Health check endpoint
 app.get('/api/health', (_req, res) => {

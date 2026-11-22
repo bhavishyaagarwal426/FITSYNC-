@@ -83,6 +83,41 @@ export default function Settings() {
           </form>
         </section>
 
+        {/* 2. Pinterest & Moodboard Integration */}
+        <section className="bg-white rounded-3xl border border-cream-300 p-6 md:p-8 shadow-card space-y-4">
+          <div className="flex items-center justify-between border-b border-cream-200 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-red-600 text-white font-black text-[11px] flex items-center justify-center">
+                P
+              </span>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-charcoal-800">
+                Pinterest Moodboard & Feed Integration
+              </h2>
+            </div>
+            <Link
+              to="/explore"
+              className="text-xs font-semibold text-burgundy-800 hover:text-burgundy-900"
+            >
+              Explore Pinterest Lookbooks →
+            </Link>
+          </div>
+
+          <p className="text-xs text-charcoal-600 leading-relaxed max-w-2xl">
+            Link your Pinterest account to automatically sync your fashion pins, train your AI Stylist with your favorite aesthetic moodboards, and recreate Pinterest outfits using your owned clothes.
+          </p>
+
+          <div className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/explore')}
+              className="border-red-200 text-red-800 hover:bg-red-50 text-xs font-bold"
+            >
+              Manage Pinterest Sync in Explore
+            </Button>
+          </div>
+        </section>
+
         {/* 2. Privacy & Data Rights */}
         <section className="bg-white rounded-3xl border border-cream-300 p-6 md:p-8 shadow-card space-y-6">
           <div className="flex items-center gap-2 border-b border-cream-200 pb-3">

@@ -311,6 +311,22 @@ export function initializeDatabase(): void {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY (inspiration_id) REFERENCES style_inspirations(id) ON DELETE CASCADE
     );
+
+    -- Pinterest Connected Accounts & Synced Pins/Boards
+    CREATE TABLE IF NOT EXISTS pinterest_connections (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE,
+      pinterest_username TEXT NOT NULL,
+      profile_url TEXT,
+      avatar_url TEXT,
+      boards_json TEXT DEFAULT '[]',
+      pins_json TEXT DEFAULT '[]',
+      aesthetic_tags TEXT DEFAULT '[]',
+      color_palette TEXT DEFAULT '[]',
+      last_synced_at TEXT DEFAULT (datetime('now')),
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
   `);
 
   // Seed style inspirations if empty

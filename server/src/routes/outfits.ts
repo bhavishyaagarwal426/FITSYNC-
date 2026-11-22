@@ -113,7 +113,20 @@ async function executeOutfitGeneration(
 
   const rejectedItemSets = rejectedRows.map((r: any) => r.item_ids.split(','));
 
-  // Run recommendation engine
+  // Retrieve user's linked Pinterest style signals if available
+  const pinterestRow = db.prepare('SELECT * FROM pinterest_connections WHERE user_id = ?').get(userId) as any;
+  let pinterestAesthetics: string[] = [];
+  let pinterestColorPalette: string[] = [];
+  let pinterestUsername = '';
+  if (pinterestRow) {
+    pinterestUsername = pinterestRow.pinterest_username;
+    try {
+      pinterestAesthetics = JSON.parse(pinterestRow.aesthetic_tags || '[]');
+      pinterestColorPalette = JSON.parse(pinterestRow.color_palette || '[]');
+    } catch {}
+  }
+
+  // Run advanced stylist recommendation engine
   const candidates = recommendOutfits({
     items,
     occasion,
@@ -122,6 +135,8 @@ async function executeOutfitGeneration(
     colorPreference,
     excludeItems,
     rejectedItemSets,
+    pinterestAesthetics,
+    pinterestColorPalette,
   });
 
   if (!candidates || candidates.length === 0) {
@@ -144,16 +159,14 @@ async function executeOutfitGeneration(
 
   const aiProvider = getAIProvider();
   let explanation = '';
-  try {
-    explanation = await aiProvider.generateOutfitExplanation(
-      selectedCandidate.items,
-      occasion,
-      style
-    );
-  } catch (err) {
-    const topItem = selectedCandidate.items.find((i: any) => i.category === 'tops');
-    const bottomItem = selectedCandidate.items.find((i: any) => i.category === 'bottoms');
-    explanation = `A cohesive combination pairing your ${topItem?.custom_name || 'top'} with ${bottomItem?.custom_name || 'bottoms'} tailored for a ${occasion} look.`;
+  const itemNames = selectedCandidate.items.map((i: any) => i.custom_name || i.subcategory || i.category).join(', ');
+  const stylingNote = selectedCandidate.stylingTechnique || 'Curated Styling';
+  const reasonText = selectedCandidate.reasons.length > 0 ? selectedCandidate.reasons.join('. ') : 'Cohesive color coordination and tailored silhouette.';
+
+  if (pinterestUsername) {
+    explanation = `[${stylingNote}] Researched from trending Pinterest aesthetics & aligned with your @${pinterestUsername} moodboard: Pairing ${itemNames}. ${reasonText}`;
+  } else {
+    explanation = `[${stylingNote}] ${reasonText} Combining ${itemNames} strictly from clothes in your digital wardrobe for an effortless ${occasion} look.`;
   }
 
   const insertOutfit = db.prepare(`
